@@ -1093,6 +1093,7 @@ static PyNumberMethods int_as_number = {
 	(unaryfunc)int_int,	/* nb_index */
 };
 
+// type & base的区别是?
 PyTypeObject PyInt_Type = {
 	PyObject_HEAD_INIT(&PyType_Type)
 	0,

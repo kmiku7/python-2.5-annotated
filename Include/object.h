@@ -15,11 +15,13 @@ accessed through special macros and functions only.  (Type objects are
 exceptions to the first rule; the standard types are represented by
 statically initialized type objects, although work on type/class unification
 for Python 2.2 made it possible to have heap-allocated type objects too).
+    A:  对象都是在stack上分配的, 除了一些例外.
 
 An object has a 'reference count' that is increased or decreased when a
 pointer to the object is copied or deleted; when the reference count
 reaches zero there are no references to the object left and it can be
 removed from the heap.
+    A:  object都有个引用计数
 
 An object has a 'type' that determines what it represents and what kind
 of data it contains.  An object's type is fixed when it is created.
@@ -27,6 +29,9 @@ Types themselves are represented as objects; an object contains a
 pointer to the corresponding type object.  The type itself has a type
 pointer pointing to the object representing the type 'type', which
 contains a pointer to itself!).
+    A:  type & object 都是object, 每个object都有个字段表示他的类型:
+            struct _typeobject *ob_type;
+        type object的该字段指向他自身.
 
 Objects do not float around in memory; once allocated an object keeps
 the same size and address.  Objects that must hold variable-size data
@@ -36,6 +41,9 @@ after allocation.  (These restrictions are made so a reference to an
 object can be simply a pointer -- moving an object would require
 updating all the pointers, and changing an object's size would require
 moving it if there was another object right next to it.)
+    A:  对象不会在内存里移动, 分配好的对象大小是不会变的, 可变对象本身
+        大小不变, 维护了一个指针指向了另一片大小可变的空间. 
+        同类型的对象大小也是可能不同的.
 
 Objects are always accessed through pointers of the type 'PyObject *'.
 The type 'PyObject' is a structure that only contains the reference count
@@ -46,6 +54,7 @@ with the reference count and type fields; the macro PyObject_HEAD should be
 used for this (to accommodate for future changes).  The implementation
 of a particular object type can cast the object pointer to the proper
 type and back.
+    A:  oo in c的常见技法了.
 
 A standard interface exists for objects that contain an array of items
 whose size is determined when the object is allocated.
@@ -61,6 +70,8 @@ whose size is determined when the object is allocated.
 #define Py_REF_DEBUG
 #endif
 
+// 这个marco是干什么的?
+// debug状态下遍历所有的对象?
 #ifdef Py_TRACE_REFS
 /* Define pointers to support a doubly-linked list of all live heap objects. */
 #define _PyObject_HEAD_EXTRA		\
@@ -100,10 +111,13 @@ whose size is determined when the object is allocated.
  * by hand.  Similarly every pointer to a variable-size Python object can,
  * in addition, be cast to PyVarObject*.
  */
+
+// 定长对象
 typedef struct _object {
 	PyObject_HEAD
 } PyObject;
 
+// 变长对象
 typedef struct {
 	PyObject_VAR_HEAD
 } PyVarObject;
@@ -259,6 +273,7 @@ typedef PyObject *(*newfunc)(struct _typeobject *, PyObject *, PyObject *);
 typedef PyObject *(*allocfunc)(struct _typeobject *, Py_ssize_t);
 
 typedef struct _typeobject {
+    // 这是一个变长对象.
 	PyObject_VAR_HEAD
 	const char *tp_name; /* For printing, in format "<module>.<name>" */
 	Py_ssize_t tp_basicsize, tp_itemsize; /* For allocation */
