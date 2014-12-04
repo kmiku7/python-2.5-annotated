@@ -425,12 +425,48 @@ PyInt_FromUnicode(Py_UNICODE *s, Py_ssize_t length, int base)
 	}
 
 /* ARGSUSED */
+static int values[10];
+static int refcounts[10];
 static int
 int_print(PyIntObject *v, FILE *fp, int flags)
      /* flags -- not used but required by interface */
 {
-	fprintf(fp, "%ld", v->ob_ival);
-	return 0;
+    PyIntObject *intObjectPtr;
+    PyIntBlock *p = block_list;
+    PyIntBlock *last = NULL;
+    int count = 0;
+    int i;
+
+    while (p != NULL) {
+        ++count;
+        last = p;
+        p = p->next;
+    }
+
+    intObjectPtr = last->objects;
+    intObjectPtr += N_INTOBJECTS - 1;
+    printf(" address @%p\n", v);
+
+    for (i = 0; i < 10; ++i, --intObjectPtr) {
+        values[i] = intObjectPtr->ob_ival;
+        refcounts[i] = intObjectPtr->ob_refcnt;
+    }
+    printf("  value : ");
+    for (i = 0; i < 8; ++i) {
+        printf("%d\t", values[i]);
+    }
+    printf("\n");
+
+    printf(" refcnt : ");
+    for (i = 0; i < 8; ++i) {
+        printf("%d\t", refcounts[i]);;
+    }
+    printf("\n");
+
+    printf(" block_list count : %d\n", count);
+    printf(" free_list : %p\n", free_list);
+
+    return 0;
 }
 
 static PyObject *
