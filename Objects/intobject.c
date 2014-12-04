@@ -53,6 +53,7 @@ fill_free_list(void)
 	block_list = (PyIntBlock *)p;
 	/* Link the int objects together, from rear to front, then return
 	   the address of the last int object in the block. */
+    // 从后向前使用
 	p = &((PyIntBlock *)p)->objects[0];
 	q = p + N_INTOBJECTS;
 	while (--q > p)
@@ -102,6 +103,7 @@ PyInt_FromLong(long ival)
 	}
 	/* Inline PyObject_New */
 	v = free_list;
+    // 利用ob_type维护成一个列表.
 	free_list = (PyIntObject *)v->ob_type;
 	PyObject_INIT(v, &PyInt_Type);
 	v->ob_ival = ival;
@@ -354,6 +356,7 @@ PyInt_FromString(char *s, char **pend, int base)
 	errno = 0;
 	if (base == 0 && s[0] == '0') {
 		x = (long) PyOS_strtoul(s, &end, base);
+        // 溢出了
 		if (x < 0)
 			return PyLong_FromString(s, pend, base);
 	}
@@ -464,6 +467,7 @@ int_add(PyIntObject *v, PyIntObject *w)
 	CONVERT_TO_LONG(v, a);
 	CONVERT_TO_LONG(w, b);
 	x = a + b;
+    // 注意这里的溢出检查, 同号运算才有可能溢出, 然后比较符号的不同.
 	if ((x^a) >= 0 || (x^b) >= 0)
 		return PyInt_FromLong(x);
 	return PyLong_Type.tp_as_number->nb_add((PyObject *)v, (PyObject *)w);

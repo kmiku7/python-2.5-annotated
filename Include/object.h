@@ -133,6 +133,8 @@ this type.  The Py_DECREF() macro uses the tp_dealloc method without
 checking for a nil pointer; it should always be implemented except if
 the implementation can guarantee that the reference count will never
 reach zero (e.g., for statically allocated type objects).
+    A:  通常在调用函数指针时会检查nil pointer, 除了tp_dealloc, 
+        因此开发者需要做些保证.
 
 NB: the methods for certain type groups are now contained in separate
 method blocks.
@@ -651,6 +653,7 @@ PyAPI_FUNC(void) _Py_AddToAllObjects(PyObject *, int force);
 	(*(op)->ob_type->tp_dealloc)((PyObject *)(op)))
 #endif /* !Py_TRACE_REFS */
 
+// _Py_INC_REFTOTAL total object count, include all objects of any type.
 #define Py_INCREF(op) (				\
 	_Py_INC_REFTOTAL  _Py_REF_DEBUG_COMMA	\
 	(op)->ob_refcnt++)
