@@ -101,6 +101,8 @@ whose size is determined when the object is allocated.
  * has room for ob_size elements.  Note that ob_size is an element count,
  * not necessarily a byte count.
  */
+// 注意ob_size的含义.
+// 这否可以这么认为: 集合类元素总是有一个空白元素?
 #define PyObject_VAR_HEAD		\
 	PyObject_HEAD			\
 	Py_ssize_t ob_size; /* Number of items in variable part */

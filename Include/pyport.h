@@ -98,6 +98,7 @@ typedef Py_intptr_t	Py_ssize_t;
 #endif
 
 /* Largest positive value of type Py_ssize_t. */
+// 大脑短路了, 这个宏看了好久.
 #define PY_SSIZE_T_MAX ((Py_ssize_t)(((size_t)-1)>>1))
 /* Smallest negative value of type Py_ssize_t. */
 #define PY_SSIZE_T_MIN (-PY_SSIZE_T_MAX-1)
@@ -179,7 +180,8 @@ typedef Py_intptr_t	Py_ssize_t;
  * large transfers, the setup costs for memcpy are often quite high.  MEMCPY
  * solves this by doing short copies "in line".
  */
-
+// A:   各平台会对大块内存的拷贝进行优化, 所以拷贝前会有一些初始化操作, 如果
+//      大多数时候拷贝的数据比较小这额外的开销就会带来额外的负担.
 #if defined(_MSC_VER)
 #define Py_MEMCPY(target, source, length) do {				\
 		size_t i_, n_ = (length);				\

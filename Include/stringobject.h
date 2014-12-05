@@ -48,6 +48,7 @@ typedef struct {
      */
 } PyStringObject;
 
+// A:   intern的三个状态
 #define SSTATE_NOT_INTERNED 0
 #define SSTATE_INTERNED_MORTAL 1
 #define SSTATE_INTERNED_IMMORTAL 2

@@ -82,11 +82,14 @@ PyString_FromStringAndSize(const char *str, Py_ssize_t size)
 		Py_MEMCPY(op->ob_sval, str, size);
 	op->ob_sval[size] = '\0';
 	/* share short strings */
+    // A:   intern机制在空串、单字符串创建时自动触发。
+    //      还有其他的自动触发条件？
 	if (size == 0) {
 		PyObject *t = (PyObject *)op;
 		PyString_InternInPlace(&t);
 		op = (PyStringObject *)t;
 		nullstring = op;
+        // 这里cache后incref，也就不会再释放了。
 		Py_INCREF(op);
 	} else if (size == 1 && str != NULL) {
 		PyObject *t = (PyObject *)op;
@@ -521,6 +524,8 @@ string_dealloc(PyObject *op)
 
 		case SSTATE_INTERNED_MORTAL:
 			/* revive dead object temporarily for DelItem */
+            // A:   这里相当于interned时候减的2又加上了，
+            //      参考下Py_DECREF宏的使用逻辑就清楚了。
 			op->ob_refcnt = 3;
 			if (PyDict_DelItem(interned, op) != 0)
 				Py_FatalError(
@@ -1163,6 +1168,7 @@ _PyString_Eq(PyObject *o1, PyObject *o2)
           && memcmp(a->ob_sval, b->ob_sval, a->ob_size) == 0;
 }
 
+// 冲突概率?
 static long
 string_hash(PyStringObject *a)
 {
@@ -1782,6 +1788,7 @@ string_join(PyStringObject *self, PyObject *orig)
 		sz += PyString_GET_SIZE(item);
 		if (i != 0)
 			sz += seplen;
+        // 这个old_sz放溢出？
 		if (sz < old_sz || sz > PY_SSIZE_T_MAX) {
 			PyErr_SetString(PyExc_OverflowError,
 				"join() result is too long for a Python string");
@@ -3986,8 +3993,8 @@ PyTypeObject PyString_Type = {
 	PyObject_HEAD_INIT(&PyType_Type)
 	0,
 	"str",
-	sizeof(PyStringObject),
-	sizeof(char),
+	sizeof(PyStringObject),     // tp_basicsize
+	sizeof(char),               // tp_itemsize
  	string_dealloc, 			/* tp_dealloc */
 	(printfunc)string_print, 		/* tp_print */
 	0,					/* tp_getattr */
@@ -4015,7 +4022,7 @@ PyTypeObject PyString_Type = {
 	string_methods,				/* tp_methods */
 	0,					/* tp_members */
 	0,					/* tp_getset */
-	&PyBaseString_Type,			/* tp_base */
+	&PyBaseString_Type,			/* tp_base */ // 基类
 	0,					/* tp_dict */
 	0,					/* tp_descr_get */
 	0,					/* tp_descr_set */
@@ -4026,6 +4033,8 @@ PyTypeObject PyString_Type = {
 	PyObject_Del,	                	/* tp_free */
 };
 
+// A:   这里的pv是一个pointer point to pointer，
+//      所以用于inplace append?? str_a += b
 void
 PyString_Concat(register PyObject **pv, register PyObject *w)
 {
