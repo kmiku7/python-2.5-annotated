@@ -928,6 +928,8 @@ string_str(PyObject *s)
 static Py_ssize_t
 string_length(PyStringObject *a)
 {
+    printf(" address @%p\n", a);
+    printf(" refcnt: %lu\n", a->ob_refcnt);
 	return a->ob_size;
 }
 
