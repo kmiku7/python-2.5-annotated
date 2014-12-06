@@ -23,6 +23,7 @@ Major subtleties ahead:  Most hash schemes depend on having a "good" hash
 function, in the sense of simulating randomness.  Python doesn't:  its most
 important hash functions (for strings and ints) are very regular in common
 cases:
+    A:  python 并没有对hash function有特别的需求.
 
 >>> map(hash, (0, 1, 2, 3))
 [0, 1, 2, 3]
@@ -63,6 +64,7 @@ order.  This would be bad, except that's not the only thing we do, and it's
 actually *good* in the common cases where hash keys are consecutive.  In an
 example that's really too small to make this entirely clear, for a table of
 size 2**3 the order of indices is:
+    A:  上边的公式可以遍历 2**i范围内的整数, 线性探查也可以, 解释了好在哪里.
 
     0 -> 1 -> 6 -> 7 -> 4 -> 5 -> 2 -> 3 -> 0 [and here it's repeating]
 
@@ -171,6 +173,7 @@ show_counts(void)
     } while(0)
 
 /* Dictionary reuse scheme to save calls to malloc, free, and memset */
+// object pool.
 #define MAXFREEDICTS 80
 static PyDictObject *free_dicts[MAXFREEDICTS];
 static int num_free_dicts = 0;
@@ -204,6 +207,7 @@ PyDict_New(void)
 			return NULL;
 		EMPTY_TO_MINSIZE(mp);
 	}
+    // 两种实现: lookdict & lookdict_string, 为何这里默认设第二个?
 	mp->ma_lookup = lookdict_string;
 #ifdef SHOW_CONVERSION_COUNTS
 	++created;
@@ -217,6 +221,7 @@ The basic lookup function used by all operations.
 This is based on Algorithm D from Knuth Vol. 3, Sec. 6.4.
 Open addressing is preferred over chaining since the link overhead for
 chaining would be substantial (100% with typical malloc overhead).
+    A:  对立开地址法和开链法, chaining的额外负担: 空间, 时间(malloc)
 
 The initial probe index is computed as hash mod the table size. Subsequent
 probe indices are computed as explained earlier.
@@ -250,6 +255,7 @@ lookdict(dictobject *mp, PyObject *key, register long hash)
 
 	i = (size_t)hash & mask;
 	ep = &ep0[i];
+    // 这里直接进行对象地址的比较吗? 有效吗?
 	if (ep->me_key == NULL || ep->me_key == key)
 		return ep;
 
@@ -261,6 +267,7 @@ lookdict(dictobject *mp, PyObject *key, register long hash)
 			cmp = PyObject_RichCompareBool(startkey, key, Py_EQ);
 			if (cmp < 0)
 				return NULL;
+            // 这个条件式不是显然成立的吗? 多线程的问题?
 			if (ep0 == mp->ma_table && ep->me_key == startkey) {
 				if (cmp > 0)
 					return ep;
@@ -274,6 +281,7 @@ lookdict(dictobject *mp, PyObject *key, register long hash)
  				return lookdict(mp, key, hash);
  			}
 		}
+        // 写这的意思是延迟初始化?? 仅仅设个NULL值??
 		freeslot = NULL;
 	}
 
@@ -291,6 +299,7 @@ lookdict(dictobject *mp, PyObject *key, register long hash)
 			cmp = PyObject_RichCompareBool(startkey, key, Py_EQ);
 			if (cmp < 0)
 				return NULL;
+            // 又是这句, 这到底是几个意思是?
 			if (ep0 == mp->ma_table && ep->me_key == startkey) {
 				if (cmp > 0)
 					return ep;
@@ -304,6 +313,7 @@ lookdict(dictobject *mp, PyObject *key, register long hash)
  				return lookdict(mp, key, hash);
  			}
 		}
+        // dummy slot的使用方式: 使用这条链上的第一个
 		else if (ep->me_key == dummy && freeslot == NULL)
 			freeslot = ep;
 	}
@@ -632,8 +642,11 @@ PyDict_SetItem(register PyObject *op, PyObject *key, PyObject *value)
 	 * Very large dictionaries (over 50K items) use doubling instead.
 	 * This may help applications with severe memory constraints.
 	 */
+    // 注意条件式的前半部分, 只有在增加新key的时候才会改变dict size.
 	if (!(mp->ma_used > n_used && mp->ma_fill*3 >= (mp->ma_mask+1)*2))
 		return 0;
+    // 加新key会resize, 但是这里触发的resize不一定全是扩大size,
+    // 比如大量dummy节点是, 这里的效果就是shrink了.
 	return dictresize(mp, (mp->ma_used > 50000 ? 2 : 4) * mp->ma_used);
 }
 

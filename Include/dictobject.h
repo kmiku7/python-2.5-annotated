@@ -15,6 +15,8 @@ extern "C" {
 
 /*
 There are three kinds of slots in the table:
+    A:  实现原理, 开放地址法, and 标记删除.
+        在二次hash, 或n次hash的时候, 不同的链可能出现冲突, 怎么解决的?
 
 1. Unused.  me_key == me_value == NULL
    Does not hold an active (key, value) pair now and never did.  Unused can
@@ -44,6 +46,8 @@ meaning otherwise.
  * additional malloc); instrumentation suggested this suffices for the
  * majority of dicts (consisting mostly of usually-small instance dicts and
  * usually-small dicts created to pass keyword arguments).
+ *
+ *  A:  PyDictObject::ma_table & PyDictObject::ma_smalltable
  */
 #define PyDict_MINSIZE 8
 
@@ -76,6 +80,8 @@ struct _dictobject {
 	 * We store the mask instead of the size because the mask is more
 	 * frequently needed.
 	 */
+    // mask = i ** 2 - 1 (?)
+    // use as mask of low n bits.
 	Py_ssize_t ma_mask;
 
 	/* ma_table points to ma_smalltable for small tables, else to
@@ -84,6 +90,7 @@ struct _dictobject {
 	 * setitem calls.
 	 */
 	PyDictEntry *ma_table;
+    // ma_lookup() 进行hash, 及二次hash计算, hash传入上次的hash value? 首次传入0?
 	PyDictEntry *(*ma_lookup)(PyDictObject *mp, PyObject *key, long hash);
 	PyDictEntry ma_smalltable[PyDict_MINSIZE];
 };
