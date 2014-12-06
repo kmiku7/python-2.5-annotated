@@ -5,12 +5,17 @@
 Another generally useful object type is an list of object pointers.
 This is a mutable type: the list items can be changed, and items can be
 added or removed.  Out-of-range indices or non-list objects are ignored.
+    A:  可变, 变长.
 
 *** WARNING *** PyList_SetItem does not increment the new item's reference
 count, but does decrement the reference count of the item it replaces,
 if not nil.  It does *decrement* the reference count if it is *not*
 inserted in the list.  Similarly, PyList_GetItem does not increment the
 returned item's reference count.
+    A:  这里讲了几个接口是否会改refcnt.
+
+    python list ~ c++ vector<PyObject*>
+
 */
 
 #ifndef Py_LISTOBJECT_H

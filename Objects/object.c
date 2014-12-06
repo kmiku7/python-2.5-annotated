@@ -930,6 +930,7 @@ Done:
 }
 
 /* Return -1 if error; 1 if v op w; 0 if not (v op w). */
+//  A:  三种返回值, 1: 相等, 2: 不等, 3: 异常
 int
 PyObject_RichCompareBool(PyObject *v, PyObject *w, int op)
 {

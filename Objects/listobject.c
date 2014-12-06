@@ -32,6 +32,7 @@ list_resize(PyListObject *self, Py_ssize_t newsize)
 	   to accommodate the newsize.  If the newsize falls lower than half
 	   the allocated size, then proceed with the realloc() to shrink the list.
 	*/
+    // A:   空闲多于当前一半才会shrink.
 	if (allocated >= newsize && newsize >= (allocated >> 1)) {
 		assert(self->ob_item != NULL || newsize == 0);
 		self->ob_size = newsize;
@@ -45,6 +46,7 @@ list_resize(PyListObject *self, Py_ssize_t newsize)
 	 * system realloc().
 	 * The growth pattern is:  0, 4, 8, 16, 25, 35, 46, 58, 72, 88, ...
 	 */
+    // A:   如果失败了, list结构本身也就被破坏了.
 	new_allocated = (newsize >> 3) + (newsize < 9 ? 3 : 6) + newsize;
 	if (newsize == 0)
 		new_allocated = 0;
@@ -93,9 +95,11 @@ PyList_New(Py_ssize_t size)
 	}
 	nbytes = size * sizeof(PyObject *);
 	/* Check for overflow */
+    // A:   另一个overflow check点.
 	if (nbytes / sizeof(PyObject *) != (size_t)size)
 		return PyErr_NoMemory();
 	if (num_free_lists) {
+        // object pool
 		num_free_lists--;
 		op = free_lists[num_free_lists];
 		_Py_NewReference((PyObject *)op);
@@ -114,6 +118,8 @@ PyList_New(Py_ssize_t size)
 		}
 		memset(op->ob_item, 0, nbytes);
 	}
+    // A:   ob_size是指存了多少个元素, 而不是可以存多少元素.
+    //      这里设置为size. why?
 	op->ob_size = size;
 	op->allocated = size;
 	_PyObject_GC_TRACK(op);
@@ -157,6 +163,8 @@ PyList_SetItem(register PyObject *op, register Py_ssize_t i,
 	register PyObject *olditem;
 	register PyObject **p;
 	if (!PyList_Check(op)) {
+        // A:   PyList_SetItem不会增加refcnt, 假设调用者调用之前进行了
+        //      incr, 这里失败时却还会decref. 这里的逻辑有点不自然.
 		Py_XDECREF(newitem);
 		PyErr_BadInternalCall();
 		return -1;
@@ -192,6 +200,7 @@ ins1(PyListObject *self, Py_ssize_t where, PyObject *v)
 	if (list_resize(self, n+1) == -1)
 		return -1;
 
+    // abs(where) > len(list) 时的处理逻辑, 注意.
 	if (where < 0) {
 		where += n;
 		if (where < 0)
@@ -544,6 +553,8 @@ list_clear(PyListObject *a)
  *
  * Special speed gimmick:  when v is NULL and ihigh - ilow <= 8, it's
  * guaranteed the call cannot fail.
+ *
+ *  A:  [ilow, ihigh)
  */
 static int
 list_ass_slice(PyListObject *a, Py_ssize_t ilow, Py_ssize_t ihigh, PyObject *v)
