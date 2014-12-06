@@ -295,7 +295,7 @@ lookdict(dictobject *mp, PyObject *key, register long hash)
 		if (ep->me_key == key)
 			return ep;
 		if (ep->me_hash == hash && ep->me_key != dummy) {
-			startkey = ep->me_key
+			startkey = ep->me_key;
 			cmp = PyObject_RichCompareBool(startkey, key, Py_EQ);
 			if (cmp < 0)
 				return NULL;
@@ -384,6 +384,50 @@ Used both by the internal resize routine and by the public insert routine.
 Eats a reference to key and one to value.
 Returns -1 if an error occurred, or 0 on success.
 */
+// just for test
+static void ShowDictObject(dictobject* dictObject) {
+    dictentry* entry = dictObject->ma_table;
+    int count = dictObject->ma_mask+1;
+    int i;
+
+    printf("  key : ");
+    for (i = 0; i < count; ++i) {
+        PyObject* key = entry->me_key;
+        PyObject* value = entry->me_value;
+
+        if (key == NULL) {
+            printf("NULL");
+        } else {
+            if (PyString_Check(key)) {
+                if (PyString_AsString(key)[0] == '<') {
+                    printf("dummy");
+                } else {
+                    (key->ob_type)->tp_print(key, stdout, 0);
+                }
+            } else {
+                (key->ob_type)->tp_print(key, stdout, 0);
+            }
+        }
+        printf("\t");
+        ++entry;
+    }
+
+    printf("\nvalue: ");
+    entry = dictObject->ma_table;
+    for (i = 0; i < count; ++i) {
+        PyObject* key = entry->me_key;
+        PyObject* value = entry->me_value;
+        if (value == NULL) {
+            printf("NULL");
+        } else {
+            (value->ob_type)->tp_print(value, stdout, 0);
+        }
+        printf("\t");
+        ++entry;
+    }
+    printf("\n");
+}
+
 static int
 insertdict(register dictobject *mp, PyObject *key, long hash, PyObject *value)
 {
@@ -416,6 +460,21 @@ insertdict(register dictobject *mp, PyObject *key, long hash, PyObject *value)
 		ep->me_value = value;
 		mp->ma_used++;
 	}
+
+    {
+        dictentry* p;
+        long strHash;
+
+        PyObject* str = PyString_FromString("kmiku7");
+        strHash = PyObject_Hash(str);
+        p = mp->ma_lookup(mp, str, strHash);
+        if (p->me_value != NULL && (value->ob_type)->tp_name[0] == 'i') {
+            PyIntObject* intObject = (PyIntObject*)value;
+            printf("insert %d\n", intObject->ob_ival);
+            ShowDictObject(mp);
+        }
+    }
+
 	return 0;
 }
 
