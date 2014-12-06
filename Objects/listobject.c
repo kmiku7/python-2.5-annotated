@@ -288,6 +288,7 @@ list_print(PyListObject *op, FILE *fp, int flags)
 	Py_ssize_t i;
 
 	rc = Py_ReprEnter((PyObject*)op);
+    printf("allocated=%d, ob_size:%d\n", op->allocated, op->ob_size);
 	if (rc != 0) {
 		if (rc < 0)
 			return rc;
