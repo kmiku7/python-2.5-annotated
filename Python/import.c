@@ -848,7 +848,7 @@ open_exclusive(char *filename)
    modification of its source into the header.
    Errors are ignored, if a write error occurs an attempt is made to
    remove the file. */
-
+//  magic-num, mtime, object-data
 static void
 write_compiled_module(PyCodeObject *co, char *cpathname, time_t mtime)
 {

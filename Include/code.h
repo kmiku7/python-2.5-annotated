@@ -8,8 +8,8 @@ extern "C" {
 
 /* Bytecode object */
 typedef struct {
-    PyObject_HEAD
-    int co_argcount;		/* #arguments, except *args */
+    PyObject_HEAD           // A:   也是个object
+    int co_argcount;		/* #arguments, except *args */ // A: 代码段的入口参数(?)
     int co_nlocals;		/* #local variables */
     int co_stacksize;		/* #entries needed for evaluation stack */
     int co_flags;		/* CO_..., see below */
@@ -17,7 +17,7 @@ typedef struct {
     PyObject *co_consts;	/* list (constants used) */
     PyObject *co_names;		/* list of strings (names used) */
     PyObject *co_varnames;	/* tuple of strings (local variable names) */
-    PyObject *co_freevars;	/* tuple of strings (free variable names) */
+    PyObject *co_freevars;	/* tuple of strings (free variable names) */ // for closure
     PyObject *co_cellvars;      /* tuple of strings (cell variable names) */
     /* The rest doesn't count for hash/cmp */
     PyObject *co_filename;	/* string (where it was loaded from) */

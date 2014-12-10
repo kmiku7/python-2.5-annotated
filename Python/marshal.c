@@ -58,6 +58,7 @@ typedef struct {
 		      else if ((p)->ptr != (p)->end) *(p)->ptr++ = (c); \
 			   else w_more(c, p)
 
+// resize & write
 static void
 w_more(int c, WFILE *p)
 {
@@ -98,6 +99,9 @@ w_short(int x, WFILE *p)
 	w_byte((char)((x>> 8) & 0xff), p);
 }
 
+// 其实这里是没有考虑字节序的, 这里的封装解决的是
+// 适配不同写入目标的情况.
+// 从最低有效位开始写入.
 static void
 w_long(long x, WFILE *p)
 {
@@ -236,7 +240,9 @@ w_object(PyObject *v, WFILE *p)
 		}
 	}
 #endif
+    // type-id-byte, len-long, contents.
 	else if (PyString_Check(v)) {
+        // 只考虑interned的string.
 		if (p->strings && PyString_CHECK_INTERNED(v)) {
 			PyObject *o = PyDict_GetItem(p->strings, v);
 			if (o) {
@@ -246,6 +252,7 @@ w_object(PyObject *v, WFILE *p)
 				goto exit;
 			}
 			else {
+                // 第几个写入的, 注意这里是怎么计数的.
 				o = PyInt_FromSsize_t(PyDict_Size(p->strings));
 				PyDict_SetItem(p->strings, v, o);
 				Py_DECREF(o);
@@ -294,6 +301,7 @@ w_object(PyObject *v, WFILE *p)
 			w_object(PyTuple_GET_ITEM(v, i), p);
 		}
 	}
+    // type-id-byte, len-long, object ...
 	else if (PyList_Check(v)) {
 		w_byte(TYPE_LIST, p);
 		n = PyList_GET_SIZE(v);
@@ -302,6 +310,7 @@ w_object(PyObject *v, WFILE *p)
 			w_object(PyList_GET_ITEM(v, i), p);
 		}
 	}
+    // type-id-byte, key, value, key, value ... NULL
 	else if (PyDict_Check(v)) {
 		Py_ssize_t pos;
 		PyObject *key, *value;
