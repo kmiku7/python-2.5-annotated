@@ -15,9 +15,9 @@ typedef struct {
 
 typedef struct _frame {
     PyObject_VAR_HEAD
-    struct _frame *f_back;	/* previous frame, or NULL */
-    PyCodeObject *f_code;	/* code segment */
-    PyObject *f_builtins;	/* builtin symbol table (PyDictObject) */
+    struct _frame *f_back;	/* previous frame, or NULL */ // 栈帧链表
+    PyCodeObject *f_code;	/* code segment */ // 只读代码
+    PyObject *f_builtins;	/* builtin symbol table (PyDictObject) */ // LGB，LEGB，e在那里？
     PyObject *f_globals;	/* global symbol table (PyDictObject) */
     PyObject *f_locals;		/* local symbol table (any mapping) */
     PyObject **f_valuestack;	/* points after the last local */
@@ -44,6 +44,8 @@ typedef struct _frame {
     int f_iblock;		/* index in f_blockstack */
     PyTryBlock f_blockstack[CO_MAXBLOCKS]; /* for try and loop blocks */
     PyObject *f_localsplus[1];	/* locals+stack, dynamically sized */
+    // 动态内存， 维护（局部变量， cell对象集合， free对象集合， 运行时栈）所需要的空间。
+    // frameobject.c line:611
 } PyFrameObject;
 
 

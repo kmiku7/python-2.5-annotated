@@ -604,34 +604,32 @@ PyFrame_New(PyThreadState *tstate, PyCodeObject *code, PyObject *globals,
                 _Py_NewReference((PyObject *)f);
                 assert(f->f_code == code);
 	}
-        else {
-                Py_ssize_t extras, ncells, nfrees;
-                ncells = PyTuple_GET_SIZE(code->co_cellvars);
-                nfrees = PyTuple_GET_SIZE(code->co_freevars);
-                extras = code->co_stacksize + code->co_nlocals + ncells +
-                    nfrees;
-                if (free_list == NULL) {
-                    f = PyObject_GC_NewVar(PyFrameObject, &PyFrame_Type,
-                        extras);
-                    if (f == NULL) {
-                            Py_DECREF(builtins);
-                            return NULL;
-                    }
-                }
-                else {
-                    assert(numfree > 0);
-                    --numfree;
-                    f = free_list;
-                    free_list = free_list->f_back;
-                    if (f->ob_size < extras) {
-                            f = PyObject_GC_Resize(PyFrameObject, f, extras);
-                            if (f == NULL) {
-                                    Py_DECREF(builtins);
-                                    return NULL;
-                            }
-                    }
-                    _Py_NewReference((PyObject *)f);
-                }
+	else {
+		Py_ssize_t extras, ncells, nfrees;
+		ncells = PyTuple_GET_SIZE(code->co_cellvars);
+		nfrees = PyTuple_GET_SIZE(code->co_freevars);
+		extras = code->co_stacksize + code->co_nlocals + ncells + nfrees;
+		if (free_list == NULL) {
+		    f = PyObject_GC_NewVar(PyFrameObject, &PyFrame_Type, extras);
+		    if (f == NULL) {
+			    Py_DECREF(builtins);
+			    return NULL;
+		    }
+		}
+		else {
+		    assert(numfree > 0);
+		    --numfree;
+		    f = free_list;
+		    free_list = free_list->f_back;
+		    if (f->ob_size < extras) {
+			    f = PyObject_GC_Resize(PyFrameObject, f, extras);
+			    if (f == NULL) {
+				    Py_DECREF(builtins);
+				    return NULL;
+			    }
+		    }
+		    _Py_NewReference((PyObject *)f);
+		}
 
 		f->f_code = code;
 		extras = code->co_nlocals + ncells + nfrees;
@@ -640,7 +638,7 @@ PyFrame_New(PyThreadState *tstate, PyCodeObject *code, PyObject *globals,
 			f->f_localsplus[i] = NULL;
 		f->f_locals = NULL;
 		f->f_trace = NULL;
-                f->f_exc_type = f->f_exc_value = f->f_exc_traceback = NULL;
+        f->f_exc_type = f->f_exc_value = f->f_exc_traceback = NULL;
 	}
 	f->f_stacktop = f->f_valuestack;
 	f->f_builtins = builtins;
