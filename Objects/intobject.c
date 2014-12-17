@@ -584,6 +584,7 @@ i_divmod(register long x, register long y,
 	 * ceiling of the infinitely precise quotient.  We want the floor,
 	 * and we have it iff the remainder's sign matches y's.
 	 */
+    // 取的ceiling，除数 & 余数 同号。
 	if (xmody && ((y ^ xmody) < 0) /* i.e. and signs differ */) {
 		xmody += y;
 		--xdivy;

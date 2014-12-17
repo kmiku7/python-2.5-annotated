@@ -36,6 +36,7 @@ PyErr_Restore(PyObject *type, PyObject *value, PyObject *traceback)
 
 	/* Save these in locals to safeguard against recursive
 	   invocation through Py_XDECREF */
+    // 这是一个type object？
 	oldtype = tstate->curexc_type;
 	oldvalue = tstate->curexc_value;
 	oldtraceback = tstate->curexc_traceback;

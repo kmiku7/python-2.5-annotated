@@ -5,6 +5,7 @@ extern "C" {
 #endif
 
 /* Error objects */
+// 内置异常相关定义。
 
 typedef struct {
     PyObject_HEAD
@@ -73,6 +74,7 @@ typedef struct {
 
 /* Error handling definitions */
 
+
 PyAPI_FUNC(void) PyErr_SetNone(PyObject *);
 PyAPI_FUNC(void) PyErr_SetObject(PyObject *, PyObject *);
 PyAPI_FUNC(void) PyErr_SetString(PyObject *, const char *);
@@ -116,6 +118,7 @@ PyAPI_FUNC(void) PyErr_NormalizeException(PyObject**, PyObject**, PyObject**);
 
 	
 /* Predefined exceptions */
+// 预定义异常类型
 
 PyAPI_DATA(PyObject *) PyExc_BaseException;
 PyAPI_DATA(PyObject *) PyExc_Exception;

@@ -1675,6 +1675,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 		case POP_BLOCK:
 			{
 				PyTryBlock *b = PyFrame_BlockPop(f);
+                // 这是什么意思？
 				while (STACK_LEVEL() > b->b_level) {
 					v = POP();
 					Py_DECREF(v);
@@ -2411,6 +2412,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #endif
 
 		} /* switch */
+        // out-switch
 
 	    on_error:
 

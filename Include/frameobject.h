@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 typedef struct {
-    int b_type;			/* what kind of block this is */
+    int b_type;			/* what kind of block this is */ // 取值范围是 bytecodes
     int b_handler;		/* where to jump to find handler */
     int b_level;		/* value stack level to pop to */
 } PyTryBlock;
@@ -42,6 +42,7 @@ typedef struct _frame {
        f_trace is set) -- at other times use PyCode_Addr2Line instead. */
     int f_lineno;		/* Current line number */
     int f_iblock;		/* index in f_blockstack */
+    // frame 对应函数栈，PyTryBlock对应代码块栈
     PyTryBlock f_blockstack[CO_MAXBLOCKS]; /* for try and loop blocks */
     PyObject *f_localsplus[1];	/* locals+stack, dynamically sized */
     // 动态内存， 维护（局部变量， cell对象集合， free对象集合， 运行时栈）所需要的空间。

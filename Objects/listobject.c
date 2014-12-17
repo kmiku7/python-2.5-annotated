@@ -2703,6 +2703,8 @@ PyTypeObject PyList_Type = {
 
 /*********************** List Iterator **************************/
 
+// 这个iter存的seq指针，和idx偏移，iter过程中，如果seq对象有变化，
+// 则会漏对象（删），或重复处理对象（加）
 typedef struct {
 	PyObject_HEAD
 	long it_index;
