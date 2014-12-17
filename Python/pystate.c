@@ -47,6 +47,7 @@ static int autoTLSkey = 0;
 
 static PyInterpreterState *interp_head = NULL;
 
+// 为什么需要这么一个变量？不是每个python线程对应一个系统线程吗？
 PyThreadState *_PyThreadState_Current = NULL;
 PyThreadFrameGetter _PyThreadState_GetFrame = NULL;
 

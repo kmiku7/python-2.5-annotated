@@ -6,6 +6,10 @@ extern "C" {
 
 
 /* Instruction opcodes for compiled code */
+// A:   https://docs.python.org/2/library/dis.html
+//      "All of the following opcodes expect arguments. An argument is two bytes, with the more significant byte last."
+//      是否可以认为：一个命名空间最多256*256个变量？
+
 
 #define STOP_CODE	0
 #define POP_TOP		1

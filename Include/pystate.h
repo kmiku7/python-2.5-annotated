@@ -15,8 +15,8 @@ struct _is; /* Forward */
 
 typedef struct _is {
 
-    struct _is *next;
-    struct _ts *tstate_head;
+    struct _is *next;   // "进程"链表
+    struct _ts *tstate_head;    // 线程链表
 
     PyObject *modules;
     PyObject *sysdict;
