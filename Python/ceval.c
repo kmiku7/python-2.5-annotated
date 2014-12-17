@@ -604,7 +604,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #define NEXTOP()	(*next_instr++)
 #define NEXTARG()	(next_instr += 2, (next_instr[-1]<<8) + next_instr[-2])
 #define PEEKARG()	((next_instr[2]<<8) + next_instr[1])
+// 相对于base-ptr
 #define JUMPTO(x)	(next_instr = first_instr + (x))
+// 相对于current-ptr
 #define JUMPBY(x)	(next_instr += (x))
 
 /* OpCode prediction macros
@@ -940,6 +942,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 			SETLOCAL(oparg, v);
 			goto fast_next_opcode;
 
+		// 仅仅是弹出栈,然后继续.
 		PREDICTED(POP_TOP);
 		case POP_TOP:
 			v = POP();
@@ -2025,6 +2028,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 			Py_DECREF(w);
 			SET_TOP(x);
 			if (x == NULL) break;
+			// 判断下一条指令然后直接跳转到对应的处理逻辑处
+			//  PREDICTED_WITH_ARG(JUMP_IF_FALSE)
+			//  PREDICTED_WITH_ARG(JUMP_IF_TRUE)
 			PREDICT(JUMP_IF_FALSE);
 			PREDICT(JUMP_IF_TRUE);
 			continue;
