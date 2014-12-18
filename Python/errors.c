@@ -21,6 +21,8 @@ extern "C" {
 #endif
 
 
+// 最初异常的raise, 是在thread state里设置 curexc_type, curexc_value, curexc_traceback
+// 这几个字段.
 void
 PyErr_Restore(PyObject *type, PyObject *value, PyObject *traceback)
 {

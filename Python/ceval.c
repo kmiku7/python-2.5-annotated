@@ -1618,6 +1618,8 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 		default: switch (opcode) {
 #endif
 		case RAISE_VARARGS:
+			// traceback, value, type
+			// 异常处理时, 进行的是type的比较.
 			u = v = w = NULL;
 			switch (oparg) {
 			case 3:
@@ -1629,6 +1631,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 			case 1:
 				w = POP(); /* exc */
 			case 0: /* Fallthrough */
+				// return WHY_EXCEPTION
+				// 该函数只是设置python thread state的那几个字段,
+				// 通过why值标识"失败"的情况 
 				why = do_raise(w, v, u);
 				break;
 			default:
@@ -2277,6 +2282,8 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #endif
 			stack_pointer = sp;
 			PUSH(x);
+			// 这边是PyEval_EvalFrameEx()函数的递归调用及返回值判断出
+			// 相同的except逻辑.
 			if (x != NULL)
 				continue;
 			break;
@@ -2436,6 +2443,8 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #endif
 			}
 			why = WHY_EXCEPTION;
+			// x 变量的使用假设是?
+			// line: 911
 			x = Py_None;
 			err = 0;
 		}
@@ -2466,6 +2475,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 		if (why == WHY_EXCEPTION) {
 			PyTraceBack_Here(f);
 
+			// user-defined trace function
 			if (tstate->c_tracefunc != NULL)
 				call_exc_trace(tstate->c_tracefunc,
 					       tstate->c_traceobj, f);
@@ -2508,7 +2518,7 @@ fast_block_end:
 			     why == WHY_EXCEPTION)) {
 				if (why == WHY_EXCEPTION) {
 					PyObject *exc, *val, *tb;
-					PyErr_Fetch(&exc, &val, &tb);
+					PyErr_Fetch(&exc, &val, &tb);	// 仅仅是fetch, 没有其他动作
 					if (val == NULL) {
 						val = Py_None;
 						Py_INCREF(val);
@@ -2543,9 +2553,11 @@ fast_block_end:
 				break;
 			}
 		} /* unwind stack */
+		// end while(why != WHY_NOT ...
 
 		/* End the loop if we still have an error (or return) */
 
+		// 本函数处理不了异常, 跳出返回函数调用者.
 		if (why != WHY_NOT)
 			break;
 		READ_TIMESTAMP(loop1);
@@ -2607,6 +2619,7 @@ fast_yield:
 	Py_LeaveRecursiveCall();
 	tstate->frame = f->f_back;
 
+	// 返回NULL标识出现异常, 需要处理.
 	return retval;
 }
 

@@ -115,6 +115,8 @@ PyTraceBack_Here(PyFrameObject *frame)
 {
 	PyThreadState *tstate = frame->f_tstate;
 	PyTracebackObject *oldtb = (PyTracebackObject *) tstate->curexc_traceback;
+	// traceback object 串成链, 什么时候释放呢?
+	// 难道是在处理异常的时候, 一个个xdecref??
 	PyTracebackObject *tb = newtracebackobject(oldtb, frame);
 	if (tb == NULL)
 		return -1;
