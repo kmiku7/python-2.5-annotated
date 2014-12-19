@@ -20,11 +20,14 @@ PyFunction_New(PyObject *code, PyObject *globals)
 		Py_INCREF(code);
 		op->func_code = code;
 		Py_INCREF(globals);
+        // global是当前这个module的global
+        // 调用其他module的function呢？
 		op->func_globals = globals;
 		op->func_name = ((PyCodeObject *)code)->co_name;
 		Py_INCREF(op->func_name);
 		op->func_defaults = NULL; /* No default arguments */
 		op->func_closure = NULL;
+        // 为何function object & code object 都要维护一个consts的引用？
 		consts = ((PyCodeObject *)code)->co_consts;
 		if (PyTuple_Size(consts) >= 1) {
 			doc = PyTuple_GetItem(consts, 0);
@@ -117,6 +120,7 @@ PyFunction_SetDefaults(PyObject *op, PyObject *defaults)
 		return -1;
 	}
 	Py_XDECREF(((PyFunctionObject *) op) -> func_defaults);
+    // 怎么用？
 	((PyFunctionObject *) op) -> func_defaults = defaults;
 	return 0;
 }

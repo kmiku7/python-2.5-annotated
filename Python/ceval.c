@@ -3549,9 +3549,12 @@ call_function(PyObject ***pp_stack, int oparg
 #endif
 		)
 {
+    // 每个函数最多传入255个参数？
+    // 各个参数什么含义？
 	int na = oparg & 0xff;
 	int nk = (oparg>>8) & 0xff;
 	int n = na + 2 * nk;
+    // 栈压入函数对象， 压入各个参数
 	PyObject **pfunc = (*pp_stack) - n - 1;
 	PyObject *func = *pfunc;
 	PyObject *x, *w;
@@ -3559,6 +3562,11 @@ call_function(PyObject ***pp_stack, int oparg
 	/* Always dispatch PyCFunction first, because these are
 	   presumed to be the most frequent callable object.
 	*/
+    // c function, c扩展？
+    // 三种调用对象：
+    //  c function
+    //  py function
+    //  method
 	if (PyCFunction_Check(func) && nk == 0) {
 		int flags = PyCFunction_GET_FLAGS(func);
 		PyThreadState *tstate = PyThreadState_GET();

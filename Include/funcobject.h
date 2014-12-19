@@ -17,12 +17,15 @@ extern "C" {
  * depending only on how many times the 'def' statement in the source was
  * executed so far.
  */
+// A:   每个源码片段只对应一个编译出来的fragment，取决与def的执行次数，
+//      可能对应零个或多个function object。
+// Q:   怎么多次调用def，生成对应同一个code object呢？
 
 typedef struct {
     PyObject_HEAD
-    PyObject *func_code;	/* A code object */
-    PyObject *func_globals;	/* A dictionary (other mappings won't do) */
-    PyObject *func_defaults;	/* NULL or a tuple */
+    PyObject *func_code;	/* A code object */ // 编译后的代码对象
+    PyObject *func_globals;	/* A dictionary (other mappings won't do) */ // 函数运行时的全局名字空间
+    PyObject *func_defaults;	/* NULL or a tuple */ // 默认参数
     PyObject *func_closure;	/* NULL or a tuple of cell objects */
     PyObject *func_doc;		/* The __doc__ attribute, can be anything */
     PyObject *func_name;	/* The __name__ attribute, a string object */
