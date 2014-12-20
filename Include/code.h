@@ -9,16 +9,23 @@ extern "C" {
 /* Bytecode object */
 typedef struct {
     PyObject_HEAD           // A:   也是个object
-    int co_argcount;		/* #arguments, except *args */ // A: 代码段的入口参数(?)
+    // 代码段（函数）的参数个数，出了扩展位置参数和扩展键值参数
+    // nlocal的布局是：
+    // 函数参数， 扩展位置参数， 扩展键值参数， 局部变量
+    int co_argcount;		/* #arguments, except *args */
     int co_nlocals;		/* #local variables */
     int co_stacksize;		/* #entries needed for evaluation stack */
     int co_flags;		/* CO_..., see below */
     PyObject *co_code;		/* instruction opcodes */
     PyObject *co_consts;	/* list (constants used) */
     PyObject *co_names;		/* list of strings (names used) */
+    // 局部变量分为两组，一组没有被嵌套作用域引用，保存在varnames字段中
+    // 另一组被嵌套作用域引用，保存在cellvars
+    // 如果嵌套引用的是函数参数，在varnames也会保存一份
+    // 然后freevars & cellvars存储上属于一组，都使用store_deref & load_deref指令进行读取。
     PyObject *co_varnames;	/* tuple of strings (local variable names) */
-    PyObject *co_freevars;	/* tuple of strings (free variable names) */ // for closure
     PyObject *co_cellvars;      /* tuple of strings (cell variable names) */
+    PyObject *co_freevars;	/* tuple of strings (free variable names) */ // for closure
     /* The rest doesn't count for hash/cmp */
     PyObject *co_filename;	/* string (where it was loaded from) */
     PyObject *co_name;		/* string (name, for reference) */

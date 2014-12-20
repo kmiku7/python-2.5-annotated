@@ -2364,9 +2364,11 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 			Py_DECREF(v);
 			if (x != NULL) {
 				v = POP();
+                // set function::closure字段
 				err = PyFunction_SetClosure(x, v);
 				Py_DECREF(v);
 			}
+            // 什么用途？
 			if (x != NULL && oparg > 0) {
 				v = PyTuple_New(oparg);
 				if (v == NULL) {
@@ -2821,6 +2823,7 @@ PyEval_EvalCodeEx(PyCodeObject *co, PyObject *globals, PyObject *locals,
 					break;
 				}
 			}
+            // ~~函数嵌套闭包的话，怎么会找不到呢？~~
 			if (found == 0) {
 				c = PyCell_New(NULL);
 				if (c == NULL)
