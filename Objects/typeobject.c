@@ -3158,6 +3158,7 @@ PyType_Ready(PyTypeObject *type)
 #endif
 
 	/* Initialize tp_base (defaults to BaseObject unless that's us) */
+    // 默认object
 	base = type->tp_base;
 	if (base == NULL && type != &PyBaseObject_Type) {
 		base = type->tp_base = &PyBaseObject_Type;
@@ -3185,6 +3186,7 @@ PyType_Ready(PyTypeObject *type)
 		type->ob_type = base->ob_type;
 
 	/* Initialize tp_bases */
+    // 这里的假设？
 	bases = type->tp_bases;
 	if (bases == NULL) {
 		if (base == NULL)
@@ -3297,6 +3299,13 @@ PyType_Ready(PyTypeObject *type)
 	assert(type->tp_dict != NULL);
 	type->tp_flags =
 		(type->tp_flags & ~Py_TPFLAGS_READYING) | Py_TPFLAGS_READY;
+
+    //if (strcmp(type->tp_name, "bool") == 0) {
+    //    printf("bool nb_add :0x%X\n", *(type->tp_as_number->nb_add));
+    //}
+    //if (strcmp(type->tp_name, "int") == 0) {
+    //    printf("int nb_add :0x%X\n", *(type->tp_as_number->nb_add));
+    //}
 	return 0;
 
   error:
@@ -5280,6 +5289,7 @@ update_one_slot(PyTypeObject *type, slotdef *p)
 		return p;
 	}
 	do {
+        // 在type->tp_dict查找name
 		descr = _PyType_Lookup(type, p->name_strobj);
 		if (descr == NULL)
 			continue;

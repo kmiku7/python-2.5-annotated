@@ -336,7 +336,7 @@ typedef struct _typeobject {
 	struct PyMethodDef *tp_methods;
 	struct PyMemberDef *tp_members;
 	struct PyGetSetDef *tp_getset;
-	struct _typeobject *tp_base;
+	struct _typeobject *tp_base;    // 基类存储位置
 	PyObject *tp_dict;
 	descrgetfunc tp_descr_get;
 	descrsetfunc tp_descr_set;
@@ -346,7 +346,7 @@ typedef struct _typeobject {
 	newfunc tp_new;
 	freefunc tp_free; /* Low-level free-memory routine */
 	inquiry tp_is_gc; /* For PyObject_IS_GC */
-	PyObject *tp_bases;
+	PyObject *tp_bases; // 基类存储位置
 	PyObject *tp_mro; /* method resolution order */
 	PyObject *tp_cache;
 	PyObject *tp_subclasses;
