@@ -1713,9 +1713,9 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 			break;
 
 		case BUILD_CLASS:
-			u = TOP();
-			v = SECOND();
-			w = THIRD();
+			u = TOP();      // locals, 元信息
+			v = SECOND();   // 基类
+			w = THIRD();    // class name
 			STACKADJ(-2);
 			x = build_class(u, v, w);
 			SET_TOP(x);
@@ -4089,6 +4089,7 @@ import_all_from(PyObject *locals, PyObject *v)
 	return err;
 }
 
+// methods包含的类的属性、方法。
 static PyObject *
 build_class(PyObject *methods, PyObject *bases, PyObject *name)
 {
@@ -4098,6 +4099,7 @@ build_class(PyObject *methods, PyObject *bases, PyObject *name)
 		metaclass = PyDict_GetItemString(methods, "__metaclass__");
 	if (metaclass != NULL)
 		Py_INCREF(metaclass);
+    // new style(?)
 	else if (PyTuple_Check(bases) && PyTuple_GET_SIZE(bases) > 0) {
 		base = PyTuple_GET_ITEM(bases, 0);
 		metaclass = PyObject_GetAttrString(base, "__class__");
@@ -4107,6 +4109,7 @@ build_class(PyObject *methods, PyObject *bases, PyObject *name)
 			Py_INCREF(metaclass);
 		}
 	}
+    // classic class(?)
 	else {
 		PyObject *g = PyEval_GetGlobals();
 		if (g != NULL && PyDict_Check(g))

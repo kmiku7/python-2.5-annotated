@@ -412,6 +412,7 @@ type_call(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
 	PyObject *obj;
 
+    // 内存分配函数
 	if (type->tp_new == NULL) {
 		PyErr_Format(PyExc_TypeError,
 			     "cannot create '%.100s' instances",
