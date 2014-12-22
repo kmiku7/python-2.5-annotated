@@ -874,6 +874,7 @@ PyObject *
 _PyLong_FromSsize_t(Py_ssize_t ival)
 {
 	Py_ssize_t bytes = ival;
+	// 我去这个one什么意思？
 	int one = 1;
 	return _PyLong_FromByteArray(
 			(unsigned char *)&bytes,

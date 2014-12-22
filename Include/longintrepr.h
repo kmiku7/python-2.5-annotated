@@ -47,6 +47,8 @@ typedef BASE_TWODIGITS_TYPE stwodigits; /* signed variant of twodigits */
    aware that longs abuse  ob_size's sign bit.
 */
 
+// len(ob_digit) == abs(object->ob_size)
+// object is negtive if object->ob_size < 0
 struct _longobject {
 	PyObject_VAR_HEAD
 	digit ob_digit[1];

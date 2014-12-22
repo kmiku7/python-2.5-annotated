@@ -918,6 +918,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 		case NOP:
 			goto fast_next_opcode;
 
+		// 直接从fastlocal/locals读取偏移量
 		case LOAD_FAST:
 			x = GETLOCAL(oparg);
 			if (x != NULL) {
@@ -930,6 +931,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 				PyTuple_GetItem(co->co_varnames, oparg));
 			break;
 
+		// 读取const tuple的 idx:oparg
 		case LOAD_CONST:
 			x = GETITEM(consts, oparg);
 			Py_INCREF(x);
@@ -956,6 +958,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 			SET_SECOND(v);
 			goto fast_next_opcode;
 
+		// 栈顶三元素rotate一下，1,2,3 -> 2,3,1
 		case ROT_THREE:
 			v = TOP();
 			w = SECOND();
@@ -982,6 +985,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 			PUSH(v);
 			goto fast_next_opcode;
 
+		// 复制栈顶的2/3个元素
 		case DUP_TOPX:
 			if (oparg == 2) {
 				x = TOP();
@@ -1040,6 +1044,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 				err = 0;
 				continue;
 			}
+			// 这个分支的含义是？
 			STACKADJ(-1);
 			break;
 

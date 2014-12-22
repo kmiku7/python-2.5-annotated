@@ -118,6 +118,7 @@ PyInt_FromSize_t(size_t ival)
 	return _PyLong_FromSize_t(ival);
 }
 
+// int object 只保存[LONG_MIN, LONG_MAX]范围的值。
 PyObject *
 PyInt_FromSsize_t(Py_ssize_t ival)
 {
@@ -130,6 +131,7 @@ static void
 int_dealloc(PyIntObject *v)
 {
 	if (PyInt_CheckExact(v)) {
+		// int object 放入free-list， 不释放系统内存空间。
 		v->ob_type = (struct _typeobject *)free_list;
 		free_list = v;
 	}
@@ -137,6 +139,7 @@ int_dealloc(PyIntObject *v)
 		v->ob_type->tp_free((PyObject *)v);
 }
 
+// 少了类型检查
 static void
 int_free(PyIntObject *v)
 {
@@ -337,6 +340,7 @@ PyInt_AsUnsignedLongLongMask(register PyObject *op)
 }
 #endif
 
+// 主要利用strtol函数族和long object
 PyObject *
 PyInt_FromString(char *s, char **pend, int base)
 {
@@ -468,6 +472,7 @@ int_add(PyIntObject *v, PyIntObject *w)
 	CONVERT_TO_LONG(w, b);
 	x = a + b;
     // 注意这里的溢出检查, 同号运算才有可能溢出, 然后比较符号的不同.
+	// a/b是否同好不影响。
 	if ((x^a) >= 0 || (x^b) >= 0)
 		return PyInt_FromLong(x);
 	return PyLong_Type.tp_as_number->nb_add((PyObject *)v, (PyObject *)w);
@@ -487,6 +492,9 @@ int_sub(PyIntObject *v, PyIntObject *w)
 }
 
 /*
+	溢出检查之殇...
+	转成double看精度损失。
+ 
 Integer overflow checking for * is painful:  Python tried a couple ways, but
 they didn't work on all platforms, or failed in endcases (a product of
 -sys.maxint-1 has been a particular pain).
@@ -584,7 +592,7 @@ i_divmod(register long x, register long y,
 	 * ceiling of the infinitely precise quotient.  We want the floor,
 	 * and we have it iff the remainder's sign matches y's.
 	 */
-    // 取的ceiling，除数 & 余数 同号。
+    // 取的floor，除数 & 余数 同号。
 	if (xmody && ((y ^ xmody) < 0) /* i.e. and signs differ */) {
 		xmody += y;
 		--xdivy;
@@ -768,6 +776,7 @@ int_neg(PyIntObject *v)
 	register long a, x;
 	a = v->ob_ival;
 	x = -a;
+	// 溢出了
 	if (a < 0 && x < 0) {
 		PyObject *o = PyLong_FromLong(a);
 		if (o != NULL) {
