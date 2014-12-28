@@ -407,6 +407,7 @@ type_repr(PyTypeObject *type)
 	return rtn;
 }
 
+// args = (name, bases, locals)
 static PyObject *
 type_call(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
@@ -420,10 +421,12 @@ type_call(PyTypeObject *type, PyObject *args, PyObject *kwds)
 		return NULL;
 	}
 
+	// type & object的分支入口在这个点.
 	obj = type->tp_new(type, args, kwds);
 	if (obj != NULL) {
 		/* Ugly exception: when the call was type(something),
 		   don't call tp_init on the result. */
+		// 这是处理的获取对象类型的操作?
 		if (type == &PyType_Type &&
 		    PyTuple_Check(args) && PyTuple_GET_SIZE(args) == 1 &&
 		    (kwds == NULL ||
@@ -808,7 +811,7 @@ subtype_dealloc(PyObject *self)
 static PyTypeObject *solid_base(PyTypeObject *type);
 
 /* type test with subclassing support */
-
+// a是b的子类
 int
 PyType_IsSubtype(PyTypeObject *a, PyTypeObject *b)
 {
@@ -1296,6 +1299,7 @@ mro_internal(PyTypeObject *type)
 	else {
 		static PyObject *mro_str;
 		checkit = 1;
+		// metaclass提供自己的mro函数(?)
 		mro = lookup_method((PyObject *)type, "mro", &mro_str);
 		if (mro == NULL)
 			return -1;
@@ -1872,7 +1876,7 @@ type_new(PyTypeObject *metatype, PyObject *args, PyObject *kwds)
 		return NULL;
 	}
 
-	/* Set __module__ in the dict */
+	/* Set __module__ in the dict */ 
 	if (PyDict_GetItemString(dict, "__module__") == NULL) {
 		tmp = PyEval_GetGlobals();
 		if (tmp != NULL) {
@@ -1889,17 +1893,18 @@ type_new(PyTypeObject *metatype, PyObject *args, PyObject *kwds)
 	   and is a string.  The __doc__ accessor will first look for tp_doc;
 	   if that fails, it will still look into __dict__.
 	*/
+	// 为何要持有一份拷贝?
 	{
 		PyObject *doc = PyDict_GetItemString(dict, "__doc__");
 		if (doc != NULL && PyString_Check(doc)) {
 			const size_t n = (size_t)PyString_GET_SIZE(doc);
-                        char *tp_doc = (char *)PyObject_MALLOC(n+1);
+            char *tp_doc = (char *)PyObject_MALLOC(n+1);
 			if (tp_doc == NULL) {
 				Py_DECREF(type);
 				return NULL;
 			}
 			memcpy(tp_doc, PyString_AS_STRING(doc), n+1);
-                        type->tp_doc = tp_doc;
+            type->tp_doc = tp_doc;
 		}
 	}
 
@@ -1991,6 +1996,7 @@ type_new(PyTypeObject *metatype, PyObject *args, PyObject *kwds)
 	}
 
 	/* Put the proper slots in place */
+	// 操作符"重载", merge
 	fixup_slot_dispatchers(type);
 
 	return (PyObject *)type;
@@ -3137,6 +3143,7 @@ static int add_operators(PyTypeObject *);
 int
 PyType_Ready(PyTypeObject *type)
 {
+	// type是要初始化的类型(对象)
 	PyObject *dict, *bases;
 	PyTypeObject *base;
 	Py_ssize_t i, n;
@@ -3159,7 +3166,8 @@ PyType_Ready(PyTypeObject *type)
 #endif
 
 	/* Initialize tp_base (defaults to BaseObject unless that's us) */
-    // 默认object
+    // 默认object, 且必须是object
+	// 初始化的是object type, 这base可以为NULL.
 	base = type->tp_base;
 	if (base == NULL && type != &PyBaseObject_Type) {
 		base = type->tp_base = &PyBaseObject_Type;
@@ -3171,6 +3179,7 @@ PyType_Ready(PyTypeObject *type)
          */
 
 	/* Initialize the base class */
+	// 是否初始化使用tp_dict字段标识
 	if (base && base->tp_dict == NULL) {
 		if (PyType_Ready(base) < 0)
 			goto error;
@@ -3187,7 +3196,7 @@ PyType_Ready(PyTypeObject *type)
 		type->ob_type = base->ob_type;
 
 	/* Initialize tp_bases */
-    // 这里的假设？
+    // 这里的假设？ 没啥假设, bases指针确保了不为NULL
 	bases = type->tp_bases;
 	if (bases == NULL) {
 		if (base == NULL)
@@ -3208,17 +3217,21 @@ PyType_Ready(PyTypeObject *type)
 		type->tp_dict = dict;
 	}
 
+	// tp_dict填充.
 	/* Add type-specific descriptors to tp_dict */
 	if (add_operators(type) < 0)
 		goto error;
+	// class & static method, 函数重载之类.
 	if (type->tp_methods != NULL) {
 		if (add_methods(type, type->tp_methods) < 0)
 			goto error;
 	}
+	// 类属性
 	if (type->tp_members != NULL) {
 		if (add_members(type, type->tp_members) < 0)
 			goto error;
 	}
+	// 属性的descriptor
 	if (type->tp_getset != NULL) {
 		if (add_getset(type, type->tp_getset) < 0)
 			goto error;
@@ -3238,6 +3251,7 @@ PyType_Ready(PyTypeObject *type)
 	assert(bases != NULL);
 	assert(PyTuple_Check(bases));
 	n = PyTuple_GET_SIZE(bases);
+	// merge from bottom to up
 	for (i = 1; i < n; i++) {
 		PyObject *b = PyTuple_GET_ITEM(bases, i);
 		if (PyType_Check(b))
@@ -3274,6 +3288,8 @@ PyType_Ready(PyTypeObject *type)
 	}
 
 	/* Some more special stuff */
+	// 前边merge的过程中,如果type没有定义tp_as_number, 这不会新建并merge相应的操作符空降.
+	// 那么这里为什么直接继承base的操作符空间呢?
 	base = type->tp_base;
 	if (base != NULL) {
 		if (type->tp_as_number == NULL)
@@ -3330,6 +3346,7 @@ add_subclass(PyTypeObject *base, PyTypeObject *type)
 	assert(PyList_Check(list));
 	newobj = PyWeakref_NewRef((PyObject *)type, NULL);
 	i = PyList_GET_SIZE(list);
+	// 使用使用过并空闲的槽位, 为何是从后向前?
 	while (--i >= 0) {
 		ref = PyList_GET_ITEM(list, i);
 		assert(PyWeakref_CheckRef(ref));
@@ -4945,6 +4962,7 @@ slot_tp_del(PyObject *self)
    slots (e.g. __str__ affects tp_str as well as tp_repr). The table is
    terminated with an all-zero entry.  (This table is further initialized and
    sorted in init_slotdefs() below.) */
+// __foo__ & tp_foo 之间是一个多对多的关系, 怎么用呢?
 
 typedef struct wrapperbase slotdef;
 
@@ -5367,6 +5385,7 @@ slotdef_cmp(const void *aa, const void *bb)
 	else
 		/* Cannot use a-b, as this gives off_t, 
 		   which may lose precision when converted to int. */
+		// 这个顺序是不重要的, 只要保证稳定即可.
 		return (a > b) ? 1 : (a < b) ? -1 : 0;
 }
 
@@ -5508,7 +5527,10 @@ recurse_down_subclasses(PyTypeObject *type, PyObject *name,
    preferred.  In particular, because as_mapping comes before as_sequence,
    for a type that defines both mp_subscript and sq_item, mp_subscript
    wins.
-
+	A:	slot <-> descriptor
+		多个slot对应一个descr, 通过offset进行pk
+		多个descr对应一个slot, 不关键.
+ 
    This only adds new descriptors and doesn't overwrite entries in
    tp_dict that were previously defined.  The descriptors contain a
    reference to the C function they must call, so that it's safe if they
@@ -5518,7 +5540,9 @@ recurse_down_subclasses(PyTypeObject *type, PyObject *name,
    rather than the C function present in the slot when it is called.
    (This is important because a subtype may have a C function in the
    slot that calls the method from the dictionary, and we want to avoid
-   infinite recursion here.) */
+   infinite recursion here.) 
+	A:	这里讲了符号查找顺序的问题.
+*/
 
 static int
 add_operators(PyTypeObject *type)

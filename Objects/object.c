@@ -1859,6 +1859,8 @@ PyObject _Py_NotImplementedStruct = {
 	PyObject_HEAD_INIT(&PyNotImplemented_Type)
 };
 
+// PyType_Ready()会判断base并递归调用
+// 所以这里是写死处理的内部对象体系的"叶子"类
 void
 _Py_ReadyTypes(void)
 {

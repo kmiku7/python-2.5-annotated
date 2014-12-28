@@ -2461,7 +2461,8 @@ PyDoc_STRVAR(list_doc,
 "list() -> new list\n"
 "list(sequence) -> new list initialized from sequence's items");
 
-
+// 处理a[begin:end:step]这种复杂的索引逻辑
+// list_item处理单个索引位置的读取逻辑
 static PyObject *
 list_subscript(PyListObject* self, PyObject* item)
 {

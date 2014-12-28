@@ -173,6 +173,7 @@ PySlice_GetIndicesEx(PySliceObject *r, Py_ssize_t length,
 		if (*stop > length) *stop = length;
 	}
 
+	// [start, stop)
 	if ((*step < 0 && *stop >= *start) 
 	    || (*step > 0 && *start >= *stop)) {
 		*slicelength = 0;

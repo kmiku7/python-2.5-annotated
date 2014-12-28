@@ -264,6 +264,9 @@ classmethoddescr_call(PyMethodDescrObject *descr, PyObject *args,
 	return result;
 }
 
+// descriptor的调用
+// 
+// 首参数一定是self
 static PyObject *
 wrapperdescr_call(PyWrapperDescrObject *descr, PyObject *args, PyObject *kwds)
 {
@@ -638,6 +641,9 @@ PyDescr_NewGetSet(PyTypeObject *type, PyGetSetDef *getset)
 	return (PyObject *)descr;
 }
 
+
+// wrapped是PyTypeObject里定义的函数指针.
+// 这些函数会自动判断首参数是不是self
 PyObject *
 PyDescr_NewWrapper(PyTypeObject *type, struct wrapperbase *base, void *wrapped)
 {

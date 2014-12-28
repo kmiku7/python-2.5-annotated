@@ -4095,11 +4095,15 @@ import_all_from(PyObject *locals, PyObject *v)
 }
 
 // methods包含的类的属性、方法。
+// 用户定义类由两部分元信息:
+//		静态元信息: metaclass
+//		动态元信息: func-arg: methods
 static PyObject *
 build_class(PyObject *methods, PyObject *bases, PyObject *name)
 {
 	PyObject *metaclass = NULL, *result, *base;
 
+	// __metaclass__ or 第一基类的metaclass
 	if (PyDict_Check(methods))
 		metaclass = PyDict_GetItemString(methods, "__metaclass__");
 	if (metaclass != NULL)
@@ -4114,7 +4118,7 @@ build_class(PyObject *methods, PyObject *bases, PyObject *name)
 			Py_INCREF(metaclass);
 		}
 	}
-    // classic class(?)
+    // classic class(?), classic没有基类.
 	else {
 		PyObject *g = PyEval_GetGlobals();
 		if (g != NULL && PyDict_Check(g))
@@ -4123,6 +4127,8 @@ build_class(PyObject *methods, PyObject *bases, PyObject *name)
 			metaclass = (PyObject *) &PyClass_Type;
 		Py_INCREF(metaclass);
 	}
+	// __call__
+	// 产生的是一个type object, callable
 	result = PyObject_CallFunctionObjArgs(metaclass, name, bases, methods, NULL);
 	Py_DECREF(metaclass);
 	if (result == NULL && PyErr_ExceptionMatches(PyExc_TypeError)) {

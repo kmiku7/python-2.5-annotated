@@ -103,6 +103,7 @@ whose size is determined when the object is allocated.
  */
 // 注意ob_size的含义.
 // 这否可以这么认为: 集合类元素总是有一个空白元素?
+// A[1]? or A[]?
 #define PyObject_VAR_HEAD		\
 	PyObject_HEAD			\
 	Py_ssize_t ob_size; /* Number of items in variable part */
@@ -300,7 +301,7 @@ typedef struct _typeobject {
 	/* More standard operations (here for binary compatibility) */
 
 	hashfunc tp_hash;
-	ternaryfunc tp_call;
+	ternaryfunc tp_call;	// callable
 	reprfunc tp_str;
 	getattrofunc tp_getattro;
 	setattrofunc tp_setattro;
@@ -333,10 +334,10 @@ typedef struct _typeobject {
 	iternextfunc tp_iternext;
 
 	/* Attribute descriptor and subclassing stuff */
-	struct PyMethodDef *tp_methods;
-	struct PyMemberDef *tp_members;
-	struct PyGetSetDef *tp_getset;
-	struct _typeobject *tp_base;    // 基类存储位置
+	struct PyMethodDef *tp_methods;	// class method, static method, operator overload
+	struct PyMemberDef *tp_members;	// class field
+	struct PyGetSetDef *tp_getset;	// descriptor
+	struct _typeobject *tp_base;    // 基类存储位置, metaclass, 实例化使用(?)
 	PyObject *tp_dict;
 	descrgetfunc tp_descr_get;
 	descrsetfunc tp_descr_set;
@@ -349,7 +350,7 @@ typedef struct _typeobject {
 	PyObject *tp_bases; // 基类存储位置
 	PyObject *tp_mro; /* method resolution order */
 	PyObject *tp_cache;
-	PyObject *tp_subclasses;
+	PyObject *tp_subclasses;	// 子类列表, 为何需要维护这个信息?
 	PyObject *tp_weaklist;
 	destructor tp_del;
 
@@ -368,6 +369,7 @@ typedef struct _typeobject {
 typedef struct _heaptypeobject {
 	/* Note: there's a dependency on the order of these members
 	   in slotptr() in typeobject.c . */
+	// 这个顺序隐含这操作符的优先级.
 	PyTypeObject ht_type;
 	PyNumberMethods as_number;
 	PyMappingMethods as_mapping;
@@ -377,6 +379,8 @@ typedef struct _heaptypeobject {
 					  a given operator (e.g. __getitem__).
 					  see add_operators() in typeobject.c . */
 	PyBufferProcs as_buffer;
+	// 额外的ht_name什么意思?
+	// holder of char*
 	PyObject *ht_name, *ht_slots;
 	/* here are optional user slots, followed by the members. */
 } PyHeapTypeObject;

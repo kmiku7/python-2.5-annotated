@@ -23,20 +23,22 @@ typedef PyObject *(*wrapperfunc_kwds)(PyObject *self, PyObject *args,
 				      void *wrapped, PyObject *kwds);
 
 struct wrapperbase {
-	char *name;
-	int offset;
-	void *function;
+	char *name;		// __add__
+	int offset;		// function的偏移, 也即PyWrapperDescrObject->d_wrapped指向的函数的偏移.
+	// 接下来四个字段怎么用?
+	// 两个函数对象, 区别是?
+	void *function;	
 	wrapperfunc wrapper;
 	char *doc;
 	int flags;
-	PyObject *name_strobj;
+	PyObject *name_strobj;	// 转成内部可索引的string-object
 };
 
 /* Flags for above struct */
 #define PyWrapperFlag_KEYWORDS 1 /* wrapper function takes keyword args */
 
 /* Various kinds of descriptor objects */
-
+// d_type指向包裹的函数所属的type object
 #define PyDescr_COMMON \
 	PyObject_HEAD \
 	PyTypeObject *d_type; \
