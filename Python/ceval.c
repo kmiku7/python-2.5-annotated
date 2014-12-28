@@ -2282,6 +2282,10 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 #endif
 			stack_pointer = sp;
 			PUSH(x);
+            if (x != NULL && PyDict_CheckExact(x)) {
+                printf("===== dict returned from call_function =====\n");
+                x->ob_type->tp_print(x, stdout, 0);
+            }
 			// 这边是PyEval_EvalFrameEx()函数的递归调用及返回值判断出
 			// 相同的except逻辑.
 			if (x != NULL)
