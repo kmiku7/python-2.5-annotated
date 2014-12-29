@@ -3606,8 +3606,11 @@ call_function(PyObject ***pp_stack, int oparg
 		}
 	} else {
 		if (PyMethod_Check(func) && PyMethod_GET_SELF(func) != NULL) {
+			// 额外的self参数传入.
+			// 之后的流程一样的
 			/* optimize access to bound methods */
 			PyObject *self = PyMethod_GET_SELF(func);
+			// debug counting, useless
 			PCALL(PCALL_METHOD);
 			PCALL(PCALL_BOUND_METHOD);
 			Py_INCREF(self);

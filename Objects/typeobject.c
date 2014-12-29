@@ -2039,6 +2039,7 @@ _PyType_Lookup(PyTypeObject *type, PyObject *name)
 
 /* This is similar to PyObject_GenericGetAttr(),
    but uses _PyType_Lookup() instead of just looking in type->tp_dict. */
+// type体系下, 只要对象是一个descriptor就会调用, 不管是位于"class"还是"instance"
 static PyObject *
 type_getattro(PyTypeObject *type, PyObject *name)
 {
@@ -3433,6 +3434,7 @@ wrap_inquirypred(PyObject *self, PyObject *args, void *wrapped)
 	return PyBool_FromLong((long)res);
 }
 
+// a + b -> a.+(b) -> +(a, b)
 static PyObject *
 wrap_binaryfunc(PyObject *self, PyObject *args, void *wrapped)
 {
@@ -5011,6 +5013,7 @@ typedef struct wrapperbase slotdef;
 	ETSLOT(NAME, as_number.SLOT, FUNCTION, wrap_binaryfunc_r, \
 	       "x." NAME "(y) <==> " DOC)
 
+// wrapper非NULL才会添加.
 static slotdef slotdefs[] = {
 	SQSLOT("__len__", sq_length, slot_sq_length, wrap_lenfunc,
 	       "x.__len__() <==> len(x)"),
@@ -5165,6 +5168,7 @@ static slotdef slotdefs[] = {
 	       "x.__hash__() <==> hash(x)"),
 	FLSLOT("__call__", tp_call, slot_tp_call, (wrapperfunc)wrap_call,
 	       "x.__call__(...) <==> x(...)", PyWrapperFlag_KEYWORDS),
+	// attention
 	TPSLOT("__getattribute__", tp_getattro, slot_tp_getattr_hook,
 	       wrap_binaryfunc, "x.__getattribute__('name') <==> x.name"),
 	TPSLOT("__getattribute__", tp_getattr, NULL, NULL, ""),

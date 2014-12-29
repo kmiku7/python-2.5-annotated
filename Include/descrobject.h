@@ -39,6 +39,7 @@ struct wrapperbase {
 
 /* Various kinds of descriptor objects */
 // d_type指向包裹的函数所属的type object
+// 这几种descriptor各有什么用?
 #define PyDescr_COMMON \
 	PyObject_HEAD \
 	PyTypeObject *d_type; \
@@ -65,8 +66,8 @@ typedef struct {
 
 typedef struct {
 	PyDescr_COMMON;
-	struct wrapperbase *d_base;
-	void *d_wrapped; /* This can be any function pointer */
+	struct wrapperbase *d_base;	// 指向的slot对象
+	void *d_wrapped; /* This can be any function pointer */	// type_object里的函数指针
 } PyWrapperDescrObject;
 
 PyAPI_DATA(PyTypeObject) PyWrapperDescr_Type;

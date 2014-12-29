@@ -537,6 +537,7 @@ static PyTypeObject PyGetSetDescr_Type = {
 	(descrsetfunc)getset_set,		/* tp_descr_set */
 };
 
+// THIS IS A DESCRIPTOR!
 PyTypeObject PyWrapperDescr_Type = {
 	PyObject_HEAD_INIT(&PyType_Type)
 	0,
@@ -593,6 +594,7 @@ descr_new(PyTypeObject *descrtype, PyTypeObject *type, const char *name)
 	return descr;
 }
 
+// 这几个函数跟模板一样, 处理逻辑diff不在这里.
 PyObject *
 PyDescr_NewMethod(PyTypeObject *type, PyMethodDef *method)
 {
@@ -983,6 +985,7 @@ static PyGetSetDef wrapper_getsets[] = {
 	{0}
 };
 
+// __add__这些函数不接受kw参数.
 static PyObject *
 wrapper_call(wrapperobject *wp, PyObject *args, PyObject *kwds)
 {
@@ -1051,6 +1054,7 @@ static PyTypeObject wrappertype = {
 	0,					/* tp_descr_set */
 };
 
+// descriptor-ojbect, instance
 PyObject *
 PyWrapper_New(PyObject *d, PyObject *self)
 {

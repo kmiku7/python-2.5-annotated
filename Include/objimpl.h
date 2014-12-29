@@ -174,6 +174,7 @@ PyAPI_FUNC(PyVarObject *) _PyObject_NewVar(PyTypeObject *, Py_ssize_t);
 #   error "_PyObject_VAR_SIZE requires SIZEOF_VOID_P be a power of 2"
 #endif
 
+// 最后两句处理的对齐的(?)
 #define _PyObject_VAR_SIZE(typeobj, nitems)	\
 	(size_t)				\
 	( ( (typeobj)->tp_basicsize +		\

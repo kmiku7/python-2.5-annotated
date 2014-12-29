@@ -1124,6 +1124,7 @@ PyObject_GetAttr(PyObject *v, PyObject *name)
 			return NULL;
 		}
 	}
+	// tp_getattro & tp_getattr的一个区别是attr名字是string object还是char*
 	if (tp->tp_getattro != NULL)
 		return (*tp->tp_getattro)(v, name);
 	if (tp->tp_getattr != NULL)
@@ -1303,13 +1304,17 @@ PyObject_GenericGetAttr(PyObject *obj, PyObject *name)
 		}
 	}
 
+	// X开头的会check null ptr
 	Py_XINCREF(descr);
 
+	// 如果是从class里拿出的descriptor && is data descriptor, 则会调用.
 	f = NULL;
 	if (descr != NULL &&
 	    PyType_HasFeature(descr->ob_type, Py_TPFLAGS_HAVE_CLASS)) {
 		f = descr->ob_type->tp_descr_get;
 		if (f != NULL && PyDescr_IsData(descr)) {
+			// 对应descriptor __get__的原型
+			// __get__(self, instance, cls)
 			res = f(descr, obj, (PyObject *)obj->ob_type);
 			Py_DECREF(descr);
 			goto done;
@@ -1320,6 +1325,7 @@ PyObject_GenericGetAttr(PyObject *obj, PyObject *name)
 	dictoffset = tp->tp_dictoffset;
 	if (dictoffset != 0) {
 		PyObject *dict;
+		// dictoffset < 0是变长对象, 那么对象的ob_size < 0又是什么意思?
 		if (dictoffset < 0) {
 			Py_ssize_t tsize;
 			size_t size;
@@ -1336,6 +1342,7 @@ PyObject_GenericGetAttr(PyObject *obj, PyObject *name)
 		dictptr = (PyObject **) ((char *)obj + dictoffset);
 		dict = *dictptr;
 		if (dict != NULL) {
+			// instance的名字拿到就拿到, 不会有额外处理.
 			res = PyDict_GetItem(dict, name);
 			if (res != NULL) {
 				Py_INCREF(res);
