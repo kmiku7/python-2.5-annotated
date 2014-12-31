@@ -4,6 +4,8 @@
 #include "Python.h"
 #include "structmember.h"
 
+
+// python dict object的封装.
 typedef struct {
 	PyObject_HEAD
 	PyObject *md_dict;
@@ -14,6 +16,7 @@ static PyMemberDef module_members[] = {
 	{0}
 };
 
+// 每个module初始就有 __name__ & __doc__ 两个字段.
 PyObject *
 PyModule_New(const char *name)
 {

@@ -52,6 +52,7 @@ PyThread_start_new_thread(void (*func)(void *), void *arg)
 long
 PyThread_get_thread_ident(void)
 {
+	// 看起来真是对应一个系统线程.
 #if !defined(PYCC_GCC)
 	PPIB pib;
 	PTIB tib;

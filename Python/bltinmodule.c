@@ -2312,6 +2312,7 @@ _PyBuiltin_Init(void)
 		return NULL;						\
 	ADD_TO_ALL(OBJECT)
 
+	// 添加内置类型.
 	SETBUILTIN("None",		Py_None);
 	SETBUILTIN("Ellipsis",		Py_Ellipsis);
 	SETBUILTIN("NotImplemented",	Py_NotImplemented);
@@ -2346,6 +2347,7 @@ _PyBuiltin_Init(void)
 #ifdef Py_USING_UNICODE
 	SETBUILTIN("unicode",		&PyUnicode_Type);
 #endif
+	// global debug flag.
 	debug = PyBool_FromLong(Py_OptimizeFlag == 0);
 	if (PyDict_SetItemString(dict, "__debug__", debug) < 0) {
 		Py_XDECREF(debug);

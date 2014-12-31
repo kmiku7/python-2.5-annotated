@@ -16,6 +16,7 @@ char *_Py_PackageContext = NULL;
    - methods is the list of top-level functions
    - doc is the documentation string
    - passthrough is passed as self to functions defined in the module
+		A:	like bounded or unbounded in class methods??
    - api_version is the value of PYTHON_API_VERSION at the time the
      module was compiled
 

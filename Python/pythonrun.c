@@ -178,10 +178,13 @@ Py_InitializeEx(int install_sigs)
 	tstate = PyThreadState_New(interp);
 	if (tstate == NULL)
 		Py_FatalError("Py_Initialize: can't make first thread");
+	// assert(ret_value == NULL);
 	(void) PyThreadState_Swap(tstate);
 
+	// 类型系统初始化
 	_Py_ReadyTypes();
 
+	// just init string object: "__builtins__"
 	if (!_PyFrame_Init())
 		Py_FatalError("Py_Initialize: can't init frames");
 
@@ -190,6 +193,8 @@ Py_InitializeEx(int install_sigs)
 
 	_PyFloat_Init();
 
+	// 设置系统module.
+	// 进程级的.
 	interp->modules = PyDict_New();
 	if (interp->modules == NULL)
 		Py_FatalError("Py_Initialize: can't make modules dictionary");
@@ -198,15 +203,19 @@ Py_InitializeEx(int install_sigs)
 	/* Init Unicode implementation; relies on the codec registry */
 	_PyUnicode_Init();
 #endif
-
+	// bimod ~ build in module
+	// bi的初始化逻辑里会用到interp->sysdict字段的值汇报错误, 
+	// 但是此刻还没有初始化, 所以是错误信息是直接输出到stderr.
 	bimod = _PyBuiltin_Init();
 	if (bimod == NULL)
 		Py_FatalError("Py_Initialize: can't initialize __builtin__");
+	// module封装的dict, 这里缓存bimod的dict指针.
 	interp->builtins = PyModule_GetDict(bimod);
 	if (interp->builtins == NULL)
 		Py_FatalError("Py_Initialize: can't initialize builtins dict");
 	Py_INCREF(interp->builtins);
 
+	// 这个和import sys的差别是?
 	sysmod = _PySys_Init();
 	if (sysmod == NULL)
 		Py_FatalError("Py_Initialize: can't initialize sys");
@@ -215,6 +224,7 @@ Py_InitializeEx(int install_sigs)
 		Py_FatalError("Py_Initialize: can't initialize sys dict");
 	Py_INCREF(interp->sysdict);
 	_PyImport_FixupExtension("sys", "sys");
+	// 插入到sys[path]
 	PySys_SetPath(Py_GetPath());
 	PyDict_SetItemString(interp->sysdict, "modules",
 			     interp->modules);
@@ -233,6 +243,7 @@ Py_InitializeEx(int install_sigs)
 	if (install_sigs)
 		initsigs(); /* Signal handling stuff, including initintr() */
 
+	// here.
 	initmain(); /* Module __main__ */
 	if (!Py_NoSiteFlag)
 		initsite(); /* Module site */

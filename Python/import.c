@@ -518,7 +518,10 @@ PyImport_GetMagicNumber(void)
    dictionary is stored by calling _PyImport_FixupExtension()
    immediately after the module initialization function succeeds.  A
    copy can be retrieved from there by calling
-   _PyImport_FindExtension(). */
+   _PyImport_FindExtension(). 
+	A:	fixup 钉住. module不会在运行时动态变化.
+*/
+
 
 PyObject *
 _PyImport_FixupExtension(char *name, char *filename)
