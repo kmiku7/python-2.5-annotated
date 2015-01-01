@@ -216,6 +216,8 @@ Py_InitializeEx(int install_sigs)
 	Py_INCREF(interp->builtins);
 
 	// 这个和import sys的差别是?
+	// 一个module可以用一定是在__builtins__里面, 这时候init sys并没有把他加入到buildin里面
+	// 所以实际上已经"import"了, 但是却不可以使用.
 	sysmod = _PySys_Init();
 	if (sysmod == NULL)
 		Py_FatalError("Py_Initialize: can't initialize sys");
@@ -224,8 +226,9 @@ Py_InitializeEx(int install_sigs)
 		Py_FatalError("Py_Initialize: can't initialize sys dict");
 	Py_INCREF(interp->sysdict);
 	_PyImport_FixupExtension("sys", "sys");
-	// 插入到sys[path]
+	// sys.path
 	PySys_SetPath(Py_GetPath());
+	// sys.modules
 	PyDict_SetItemString(interp->sysdict, "modules",
 			     interp->modules);
 
@@ -245,6 +248,7 @@ Py_InitializeEx(int install_sigs)
 
 	// here.
 	initmain(); /* Module __main__ */
+	// import机制已经初始化完成.
 	if (!Py_NoSiteFlag)
 		initsite(); /* Module site */
 
@@ -691,12 +695,14 @@ PyRun_AnyFileExFlags(FILE *fp, const char *filename, int closeit,
 	if (filename == NULL)
 		filename = "???";
 	if (Py_FdIsInteractive(fp, filename)) {
+		// 交互式
 		int err = PyRun_InteractiveLoopFlags(fp, filename, flags);
 		if (closeit)
 			fclose(fp);
 		return err;
 	}
 	else
+		// 执行脚本文件
 		return PyRun_SimpleFileExFlags(fp, filename, closeit, flags);
 }
 
@@ -722,6 +728,10 @@ PyRun_InteractiveLoopFlags(FILE *fp, const char *filename, PyCompilerFlags *flag
 		Py_XDECREF(v);
 	}
 	for (;;) {
+		// 这是一个 infinite loop!
+		// 每调用一次解析一条交互模式下输入的语句(?)
+		// 然后在__main__ module里执行(?)
+		// run_mode()里分两步, compile ast & eval_code
 		ret = PyRun_InteractiveOneFlags(fp, filename, flags);
 		PRINT_TOTAL_REFS();
 		if (ret == E_EOF)
@@ -771,6 +781,7 @@ PyRun_InteractiveOneFlags(FILE *fp, const char *filename, PyCompilerFlags *flags
 		Py_XDECREF(w);
 		return -1;
 	}
+	// 读取输入, 解析, 构造抽象语法树, 返回的是AST?? 虚拟机读取的不是字节码吗? 这个gap是在哪里串起来的?
 	mod = PyParser_ASTFromFile(fp, filename,
 				   Py_single_input, ps1, ps2,
 				   flags, &errcode, arena);
@@ -785,11 +796,13 @@ PyRun_InteractiveOneFlags(FILE *fp, const char *filename, PyCompilerFlags *flags
 		PyErr_Print();
 		return -1;
 	}
+	// 从__main__module开始执行.
 	m = PyImport_AddModule("__main__");
 	if (m == NULL) {
 		PyArena_Free(arena);
 		return -1;
 	}
+	// __main__的md_dict作为虚拟机启动时的global & local namespace
 	d = PyModule_GetDict(m);
 	v = run_mod(mod, filename, d, d, flags, arena);
 	PyArena_Free(arena);
@@ -864,6 +877,7 @@ PyRun_SimpleFileExFlags(FILE *fp, const char *filename, int closeit,
 		}
 		Py_DECREF(f);
 	}
+	// 这里假设了输入都是.py, .pyc or .pyo文件.
 	ext = filename + strlen(filename) - 4;
 	if (maybe_pyc_file(fp, filename, ext, closeit)) {
 		/* Try to run a pyc file. First, re-open in binary */

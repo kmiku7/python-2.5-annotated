@@ -2859,6 +2859,7 @@ PyEval_EvalCodeEx(PyCodeObject *co, PyObject *globals, PyObject *locals,
 		return PyGen_New(f);
 	}
 
+	// 那个huge switch.
         retval = PyEval_EvalFrameEx(f,0);
 
   fail: /* Jump here from prelude on failure */

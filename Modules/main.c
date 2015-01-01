@@ -446,6 +446,8 @@ Py_Main(int argc, char **argv)
 #else
 	Py_SetProgramName(argv[0]);
 #endif
+	
+	// 虚拟机初始化
 	Py_Initialize();
 
 	if (Py_VerboseFlag ||
