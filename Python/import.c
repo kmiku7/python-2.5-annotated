@@ -2102,7 +2102,7 @@ get_parent(PyObject *globals, char *buf, Py_ssize_t *p_buflen, int level)
 	modname = PyDict_GetItem(globals, namestr);
 	if (modname == NULL || !PyString_Check(modname))
 		return Py_None;
-
+	// 空值? 还是没有设?
 	modpath = PyDict_GetItem(globals, pathstr);
 	if (modpath != NULL) {
 		Py_ssize_t len = PyString_GET_SIZE(modname);
@@ -2117,11 +2117,13 @@ get_parent(PyObject *globals, char *buf, Py_ssize_t *p_buflen, int level)
 		char *start = PyString_AS_STRING(modname);
 		char *lastdot = strrchr(start, '.');
 		size_t len;
+		// 这里是两个条件,  level > 0
 		if (lastdot == NULL && level > 0) {
 			PyErr_SetString(PyExc_ValueError,
 				"Attempted relative import in non-package");
 			return NULL;
 		}
+		// interactive mode
 		if (lastdot == NULL)
 			return Py_None;
 		len = lastdot - start;
