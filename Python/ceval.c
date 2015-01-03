@@ -2047,14 +2047,18 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 			continue;
 
 		case IMPORT_NAME:
+			// original name of module
 			w = GETITEM(names, oparg);
+			// import function, bltinmodule.c, builtin___import__
 			x = PyDict_GetItemString(f->f_builtins, "__import__");
 			if (x == NULL) {
 				PyErr_SetString(PyExc_ImportError,
 						"__import__ not found");
 				break;
 			}
+			// fromlist
 			v = POP();
+			// level
 			u = TOP();
 			if (PyInt_AsLong(u) != -1 || PyErr_Occurred())
 				w = PyTuple_Pack(5,
@@ -2087,6 +2091,8 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 			break;
 
 		case IMPORT_STAR:
+			// f-f_locas.udpate((v.__dict__ and without leading_underscores) or v.__all__)
+			// except 
 			v = POP();
 			PyFrame_FastToLocals(f);
 			if ((x = f->f_locals) == NULL) {

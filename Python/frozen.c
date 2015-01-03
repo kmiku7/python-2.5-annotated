@@ -11,6 +11,9 @@
    go to ../Tools/freeze/ and freeze the hello.py file; then copy and paste
    the appropriate bytes from M___main__.c. */
 
+// 自带interpreter的模块, 也可以import?
+// freeze的时候会扩展_PyImport_FrozenModules数组(?)
+
 static unsigned char M___hello__[] = {
 	99,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,
 	0,115,9,0,0,0,100,0,0,71,72,100,1,0,83,40,

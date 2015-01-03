@@ -39,6 +39,7 @@ builtin___import__(PyObject *self, PyObject *args, PyObject *kwds)
 	PyObject *globals = NULL;
 	PyObject *locals = NULL;
 	PyObject *fromlist = NULL;
+	// 传入的tuple size == 4 or 5, 这里有默认值-1.
 	int level = -1;
 
 	if (!PyArg_ParseTupleAndKeywords(args, kwds, "s|OOOi:__import__",

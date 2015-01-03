@@ -39,6 +39,7 @@ _PyImport_LoadDynamicModule(char *name, char *pathname, FILE *fp)
 		shortname = lastdot+1;
 	}
 
+	// 用的dynload_shlib.c
 	p = _PyImport_GetDynLoadFunc(name, shortname, pathname, fp);
 	if (PyErr_Occurred())
 		return NULL;

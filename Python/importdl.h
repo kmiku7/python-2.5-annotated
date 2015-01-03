@@ -25,6 +25,7 @@ struct filedescr {
 	char *mode;
 	enum filetype type;
 };
+// 保存了所有可以支持的module类型信息.
 extern struct filedescr * _PyImport_Filetab;
 extern const struct filedescr _PyImport_DynLoadFiletab[];
 

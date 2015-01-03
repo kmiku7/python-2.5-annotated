@@ -65,7 +65,8 @@ static struct {
 } handles[128];
 static int nhandles = 0;
 
-
+//  从这段函数的处理可以看出, module加载后是不是unload的, 总是会持有一个打开的so handler.
+// 并且最多是128个(?)
 dl_funcptr _PyImport_GetDynLoadFunc(const char *fqname, const char *shortname,
 				    const char *pathname, FILE *fp)
 {

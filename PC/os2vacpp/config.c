@@ -47,6 +47,7 @@ extern void initmsvcrt(void);
 extern void PyMarshal_Init(void);
 extern void initimp(void);
 
+// 内置module列表.
 struct _inittab _PyImport_Inittab[] = {
 
         {"array", initarray},

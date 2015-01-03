@@ -105,7 +105,7 @@ static const struct filedescr _PyImport_StandardFiletab[] = {
 static PyTypeObject NullImporterType;	/* Forward reference */
 
 /* Initialize things */
-
+// 初始化_PyImport_Filetab, 确定可以支持的扩展文件类型.
 void
 _PyImport_Init(void)
 {
@@ -132,6 +132,7 @@ _PyImport_Init(void)
 
 	_PyImport_Filetab = filetab;
 
+	// Py_OptimizeFlag, pyc & pyo到底都是啥?
 	if (Py_OptimizeFlag) {
 		/* Replace ".pyc" with ".pyo" in _PyImport_Filetab */
 		for (; filetab->suffix != NULL; filetab++) {
@@ -658,6 +659,8 @@ PyImport_ExecCodeModuleEx(char *name, PyObject *co, char *pathname)
 		PyErr_Clear(); /* Not important enough to report */
 	Py_DECREF(v);
 
+	// 关键一步: module namespace隔离.
+	// 	结合PyImport_AddModule()的实现.
 	v = PyEval_EvalCode((PyCodeObject *)co, d, d);
 	if (v == NULL)
 		goto error;
@@ -998,6 +1001,8 @@ load_package(char *name, char *pathname)
 			m = NULL;
 		goto cleanup;
 	}
+	// 这里会替换this->m_dict['__file__'] ??
+	// 是的, 这里的name没有变, 还是在"name"这个module里进行命名空间变化操作.
 	m = load_module(name, fp, buf, fdp->type, NULL);
 	if (fp != NULL)
 		fclose(fp);
@@ -1194,6 +1199,7 @@ find_module(char *fullname, char *subname, PyObject *path, char *buf,
 			     "No frozen submodule named %.200s", name);
 		return NULL;
 	}
+	// absolute search
 	if (path == NULL) {
 		if (is_builtin(name)) {
 			strcpy(buf, name);
@@ -1219,6 +1225,7 @@ find_module(char *fullname, char *subname, PyObject *path, char *buf,
 		return NULL;
 	}
 
+	// path_hooks & path_importer_cache 又各有什么用途?
 	path_hooks = PySys_GetObject("path_hooks");
 	if (path_hooks == NULL || !PyList_Check(path_hooks)) {
 		PyErr_SetString(PyExc_ImportError,
@@ -1236,6 +1243,7 @@ find_module(char *fullname, char *subname, PyObject *path, char *buf,
 
 	npath = PyList_Size(path);
 	namelen = strlen(name);
+	// 遍历的优先顺序
 	for (i = 0; i < npath; i++) {
 		PyObject *copy = NULL;
 		PyObject *v = PyList_GetItem(path, i);
@@ -1356,6 +1364,7 @@ find_module(char *fullname, char *subname, PyObject *path, char *buf,
 		saved_namelen = namelen;
 #endif /* PYOS_OS2 */
 		for (fdp = _PyImport_Filetab; fdp->suffix != NULL; fdp++) {
+			// _PyImport_Filetab的顺序也就决定了各种扩展的优先级
 #if defined(PYOS_OS2)
 			/* OS/2 limits DLLs to 8 character names (w/o
 			   extension)
@@ -1751,6 +1760,7 @@ load_module(char *name, FILE *fp, char *buf, int type, PyObject *loader)
 
 	case C_BUILTIN:
 	case PY_FROZEN:
+		// 一次性全部加载, 然后找到所需的module
 		if (buf != NULL && buf[0] != '\0')
 			name = buf;
 		if (type == C_BUILTIN)
@@ -1980,10 +1990,13 @@ import_module_level(char *name, PyObject *globals, PyObject *locals,
 	Py_ssize_t buflen = 0;
 	PyObject *parent, *head, *next, *tail;
 
+	// 找到import执行的环境.
 	parent = get_parent(globals, buf, &buflen, level);
 	if (parent == NULL)
 		return NULL;
 
+	// 只有在遍历启动的第一步时, 可以有机会进行绝对搜索加载,
+	// 一旦深入到遍历过程里, 查找范围就限制在了parent的路径里.
 	head = load_next(parent, Py_None, &name, buf, &buflen);
 	if (head == NULL)
 		return NULL;
@@ -2010,17 +2023,21 @@ import_module_level(char *name, PyObject *globals, PyObject *locals,
 		return NULL;
 	}
 
+	// from a import b, c
 	if (fromlist != NULL) {
 		if (fromlist == Py_None || !PyObject_IsTrue(fromlist))
 			fromlist = NULL;
 	}
 
+	// import a.b.c
 	if (fromlist == NULL) {
 		Py_DECREF(tail);
 		return head;
 	}
 
 	Py_DECREF(head);
+	// 确保通过tail可以找到fromlist里的各个元素.
+	// 返回0是失败, 既没有用True/False, 也不符合系统调用的int返回值规范, 囧.
 	if (!ensure_fromlist(tail, fromlist, buf, buflen, 0)) {
 		Py_DECREF(tail);
 		return NULL;
@@ -2099,6 +2116,7 @@ get_parent(PyObject *globals, char *buf, Py_ssize_t *p_buflen, int level)
 
 	*buf = '\0';
 	*p_buflen = 0;
+	// __name__总是保存fullname
 	modname = PyDict_GetItem(globals, namestr);
 	if (modname == NULL || !PyString_Check(modname))
 		return Py_None;
@@ -2161,6 +2179,11 @@ get_parent(PyObject *globals, char *buf, Py_ssize_t *p_buflen, int level)
 }
 
 /* altmod is either None or same as mod */
+// (p_name, buf):
+//		("xml.sax.xmlreader", "")
+//		("sax.xmlreader", "xml")
+//		("xmlreader", "xml.sax")
+//		("", "xml.sax.xmlreader")
 static PyObject *
 load_next(PyObject *mod, PyObject *altmod, char **p_name, char *buf,
 	  Py_ssize_t *p_buflen)
@@ -2193,6 +2216,7 @@ load_next(PyObject *mod, PyObject *altmod, char **p_name, char *buf,
 		return NULL;
 	}
 
+	// 拼一个fullname, 包括parent的name, parent-name已经在get_parent()调用里填充了.
 	p = buf + *p_buflen;
 	if (p != buf)
 		*p++ = '.';
@@ -2205,6 +2229,8 @@ load_next(PyObject *mod, PyObject *altmod, char **p_name, char *buf,
 	p[len] = '\0';
 	*p_buflen = p+len-buf;
 
+	// p, buf指向同一个char array的不同位置, 所以分别对应的是shortname and fullname.
+	// ~~relative search firstly, then absolutely.~~
 	result = import_submodule(mod, p, buf);
 	if (result == Py_None && altmod != mod) {
 		Py_DECREF(result);
@@ -2246,6 +2272,11 @@ ensure_fromlist(PyObject *mod, PyObject *fromlist, char *buf, Py_ssize_t buflen,
 {
 	int i;
 
+	// 最后一级是module的话, 有没有显然不是在这里判断的.
+	// module的处理逻辑是, 有的import进来, 没有的立即报错, 不继续处理.
+	// 如: from pa.tank import a, b, c
+	// tank里有a,c, 没有b, 处理的报cannot import b,
+	// 此时导入了a, c并没有导入.
 	if (!PyObject_HasAttrString(mod, "__path__"))
 		return 1;
 
@@ -2265,12 +2296,16 @@ ensure_fromlist(PyObject *mod, PyObject *fromlist, char *buf, Py_ssize_t buflen,
 			Py_DECREF(item);
 			return 0;
 		}
+		// from a import *的处理逻辑是:
+		//		把module a的名字空间merge到当前的名字空间里.
+		//		或者把__all__指定的名字merge进来, 此时不要求这些名字是已经存在的, 如果不存在, 这一定是个mod/pkg.
 		if (PyString_AS_STRING(item)[0] == '*') {
 			PyObject *all;
 			Py_DECREF(item);
 			/* See if the package defines __all__ */
 			if (recursive)
 				continue; /* Avoid endless recursion */
+			// __all__的唯一用途就是控制from x import *的可见符号(?)
 			all = PyObject_GetAttrString(mod, "__all__");
 			if (all == NULL)
 				PyErr_Clear();
@@ -2296,6 +2331,8 @@ ensure_fromlist(PyObject *mod, PyObject *fromlist, char *buf, Py_ssize_t buflen,
 			p = buf + buflen;
 			*p++ = '.';
 			strcpy(p, subname);
+			// 在这个递归import fromlist的过程中, submod符号已经插入到mod的ns里了.
+			// 之后调用字节码import_from基本是可以成功的.
 			submod = import_submodule(mod, subname, buf);
 			Py_XDECREF(submod);
 			if (submod == NULL) {
@@ -2346,6 +2383,7 @@ add_submodule(PyObject *mod, PyObject *submod, char *fullname, char *subname,
 static PyObject *
 import_submodule(PyObject *mod, char *subname, char *fullname)
 {
+	// get modules pool
 	PyObject *modules = PyImport_GetModuleDict();
 	PyObject *m = NULL;
 
@@ -2367,6 +2405,7 @@ import_submodule(PyObject *mod, char *subname, char *fullname)
 			path = NULL;
 		else {
 			path = PyObject_GetAttrString(mod, "__path__");
+			// 不能相对一个module进行搜索, 进入绝对搜索.
 			if (path == NULL) {
 				PyErr_Clear();
 				Py_INCREF(Py_None);
@@ -2375,6 +2414,7 @@ import_submodule(PyObject *mod, char *subname, char *fullname)
 		}
 
 		buf[0] = '\0';
+		// find
 		fdp = find_module(fullname, subname, path, buf, MAXPATHLEN+1,
 				  &fp, &loader);
 		Py_XDECREF(path);
@@ -2385,10 +2425,12 @@ import_submodule(PyObject *mod, char *subname, char *fullname)
 			Py_INCREF(Py_None);
 			return Py_None;
 		}
+		// load
 		m = load_module(fullname, fp, buf, fdp->type, loader);
 		Py_XDECREF(loader);
 		if (fp)
 			fclose(fp);
+		// add to sys.modules
 		if (!add_submodule(mod, m, fullname, subname, modules)) {
 			Py_XDECREF(m);
 			m = NULL;
@@ -2458,6 +2500,7 @@ PyImport_ReloadModule(PyObject *m)
 		return NULL;
 	}
 
+	// 相当于在"name" module再执行一遍module code.
 	newm = load_module(name, fp, buf, fdp->type, loader);
 	Py_XDECREF(loader);
 
