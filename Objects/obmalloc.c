@@ -236,6 +236,7 @@ struct pool_header {
 	union { block *_padding;
 		uint count; } ref;	/* number of allocated blocks    */
 	block *freeblock;		/* pool's free list head         */
+	// 这里的trick, 先next, then prev.
 	struct pool_header *nextpool;	/* next pool of this size class  */
 	struct pool_header *prevpool;	/* previous pool       ""        */
 	uint arenaindex;		/* index into arenas of base adr */
@@ -666,6 +667,10 @@ obmalloc in a small constant time, independent of the number of arenas
 obmalloc controls.  Since this test is needed at every entry point, it's
 extremely desirable that it be this fast.
 */
+// 这里抽取的是pool所属的arena的大内存块的地址范围.
+// 为什么不抽取pool的地址范围呢? 因为这里的目的是什么, POOL不就是抽取出来的p所属的pool的地址吗.
+// arenaindex是uint, 不会有地址越界??
+// os也每次分配一个mem page??
 #define Py_ADDRESS_IN_RANGE(P, POOL)			\
 	((POOL)->arenaindex < maxarenas &&		\
 	 (uptr)(P) - arenas[(POOL)->arenaindex].address < (uptr)ARENA_SIZE && \
@@ -839,6 +844,10 @@ PyObject_Malloc(size_t nbytes)
 				/* Luckily, this pool last contained blocks
 				 * of the same size class, so its header
 				 * and free list are already initialized.
+				 * 	A:	但是nextoffset会变,为什么不reset呢?
+				 *		释放的时候会reset?
+				 *      有一个used -> empty的状态变化?
+			     * 		都不是, 应为用过的又变成empty, (freeblock, nextoffset)依然是合法有效的. 
 				 */
 				bp = pool->freeblock;
 				pool->freeblock = *(block **)bp;
@@ -873,6 +882,7 @@ PyObject_Malloc(size_t nbytes)
 		usable_arenas->pool_address += POOL_SIZE;
 		--usable_arenas->nfreepools;
 
+		// 取完pool后立即更新usable_arena的值.
 		if (usable_arenas->nfreepools == 0) {
 			assert(usable_arenas->nextarena == NULL ||
 			       usable_arenas->nextarena->prevarena ==
