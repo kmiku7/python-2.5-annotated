@@ -599,6 +599,38 @@ allocated consecutive numbers starting at 1, this behavior should not\n\
 be relied upon, and the number should be seen purely as a magic cookie.\n\
 A thread's identity may be reused for another thread after it exits.");
 
+// 输出里有个Py_Repr，作用请参考dict_print(), Py_ReprEnter().
+static PyObject*
+thread_print_current_thread_info(PyObject* self)
+{
+    if (_PyThreadState_Current == NULL)
+    {
+        PyErr_SetString(PyExc_SystemError,
+                "Couldn't get thread-state structure");
+        return NULL;
+    }
+    printf("----- PyThreadState_Current %p -----\n", _PyThreadState_Current);
+    printf("tick_counter: %d\n", _PyThreadState_Current->tick_counter);
+    printf("gilstate_counter:%d\n", _PyThreadState_Current->gilstate_counter);
+    printf("thread_id:%ld\n", _PyThreadState_Current->thread_id);
+    printf("dict:");
+    if (_PyThreadState_Current->dict == NULL)
+    {
+        printf("None");
+    } else {
+        printf("\taddress:%p\n", _PyThreadState_Current->dict);
+        _PyThreadState_Current->dict->ob_type->tp_print(_PyThreadState_Current->dict, stdout, 0);
+    }
+    printf("\n");
+
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+PyDoc_STRVAR(print_current_thread_info_doc,
+"print_current_thread_info() -> None\n\
+\n\
+Print informations in PyThreadState");
+
 // 不带参数等同于thread_stack_size(0)
 static PyObject *
 thread_stack_size(PyObject *self, PyObject *args)
@@ -680,6 +712,8 @@ static PyMethodDef thread_methods[] = {
 	{"exit_prog",		(PyCFunction)thread_PyThread_exit_prog,
 	 METH_VARARGS},
 #endif
+    {"print_current_thread_info", (PyCFunction)thread_print_current_thread_info,
+        METH_NOARGS, print_current_thread_info_doc},
 	{NULL,			NULL}		/* sentinel */
 };
 
