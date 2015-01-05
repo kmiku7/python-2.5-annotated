@@ -97,7 +97,7 @@
  * instantly, it is, else the pair is used to block the thread until the
  * bit is cleared.     9 May 1994 tim@ksr.com
  */
-
+// 按照生产者/消费者模型就好理解了.
 typedef struct {
 	char             locked; /* 0=unlocked, 1=locked */
 	/* a <cond, mutex> pair to handle an acquire of a locked lock */
@@ -194,6 +194,7 @@ PyThread_start_new_thread(void (*func)(void *), void *arg)
 	if (status != 0)
             return -1;
 
+		// 默认是detach的.
         pthread_detach(th);
 
 #if SIZEOF_PTHREAD_T <= SIZEOF_LONG
@@ -274,6 +275,7 @@ PyThread__exit_prog(int status)
 }
 #endif /* NO_EXIT_PROG */
 
+// 两套实现, 一套是pthread_lock, 一套是semaphore.
 #ifdef USE_SEMAPHORES
 
 /*

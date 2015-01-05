@@ -220,6 +220,9 @@ any of the other functions are called.  There's also a hidden assumption
 that calls to PyThread_create_key() are serialized externally.
 ------------------------------------------------------------------------ */
 
+// 解决时是os不支持thread local storage的问题.
+// 所有数据组织成一个链表, 通过(key, id)查找数据. (autoTLSkey, thread_id)
+
 /* A singly-linked list of struct key objects remembers all the key->value
  * associations.  File static keyhead heads the list.  keymutex is used
  * to enforce exclusion internally.

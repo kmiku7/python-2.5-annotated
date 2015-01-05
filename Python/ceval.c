@@ -796,11 +796,11 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 		   Py_MakePendingCalls() above. */
 
 		if (--_Py_Ticker < 0) {
-                        if (*next_instr == SETUP_FINALLY) {
-                                /* Make the last opcode before
-                                   a try: finally: block uninterruptable. */
-                                goto fast_next_opcode;
-                        }
+			if (*next_instr == SETUP_FINALLY) {
+					/* Make the last opcode before
+					   a try: finally: block uninterruptable. */
+					goto fast_next_opcode;
+			}
 			_Py_Ticker = _Py_CheckInterval;
 			tstate->tick_counter++;
 #ifdef WITH_TSC
@@ -822,6 +822,8 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 			if (interpreter_lock) {
 				/* Give another thread a chance */
 
+				// 上下文切换过程中, current_state的变化是:
+				//		tstate-a -> NULL -> tstate-b
 				if (PyThreadState_Swap(NULL) != tstate)
 					Py_FatalError("ceval: tstate mix-up");
 				PyThread_release_lock(interpreter_lock);
@@ -880,6 +882,7 @@ PyEval_EvalFrameEx(PyFrameObject *f, int throwflag)
 		if (HAS_ARG(opcode))
 			oparg = NEXTARG();
 	  dispatch_opcode:
+			  // 这里统计指令数是准的.
 #ifdef DYNAMIC_EXECUTION_PROFILE
 #ifdef DXPAIRS
 		dxpairs[lastopcode][opcode]++;

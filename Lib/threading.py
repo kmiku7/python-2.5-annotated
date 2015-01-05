@@ -33,7 +33,7 @@ del thread
 _VERBOSE = False
 
 if __debug__:
-
+	# debug mode && verbose=True
     class _Verbose(object):
 
         def __init__(self, verbose=None):
@@ -123,6 +123,7 @@ class _RLock(_Verbose):
             if __debug__:
                 self._note("%s.release(): non-final release", self)
 
+	# for context manager
     def __exit__(self, t, v, tb):
         self.release()
 
@@ -197,12 +198,14 @@ class _Condition(_Verbose):
     def _is_owned(self):
         # Return True if lock is owned by currentThread.
         # This method is called only if __lock doesn't have _is_owned().
+		# 能抢到锁说明不是被当前线程owned. 没看错.
         if self.__lock.acquire(0):
             self.__lock.release()
             return False
         else:
             return True
 
+	# 实现方式是生成一个锁, 然后acquire()一次, 然后释放condition锁然后acquire()自己生成的锁.
     def wait(self, timeout=None):
         assert self._is_owned(), "wait() of un-acquire()d lock"
         waiter = _allocate_lock()
@@ -244,6 +247,7 @@ class _Condition(_Verbose):
         finally:
             self._acquire_restore(saved_state)
 
+	# FIFO先等的会先被唤醒, 然后唤醒的这些waiter里那个会最终抢到Condition则是不定的.
     def notify(self, n=1):
         assert self._is_owned(), "notify() of un-acquire()d lock"
         __waiters = self.__waiters
@@ -305,6 +309,7 @@ class _Semaphore(_Verbose):
         if __debug__:
             self._note("%s.release: success, value=%s",
                        self, self.__value)
+		# notify(n=1), 默认唤醒一个.
         self.__cond.notify()
         self.__cond.release()
 
@@ -321,6 +326,7 @@ class _BoundedSemaphore(_Semaphore):
         _Semaphore.__init__(self, value, verbose)
         self._initial_value = value
 
+	# 加了release时候的check.
     def release(self):
         if self._Semaphore__value >= self._initial_value:
             raise ValueError, "Semaphore released too many times"
@@ -369,12 +375,20 @@ class _Event(_Verbose):
 _counter = 0
 def _newname(template="Thread-%d"):
     global _counter
+	# 这条指令会被解释成:
+	#	1.	load_name
+	#	2.	load_const
+	#	3.	binary_add
+	#	4.	store_name
+	# 3/4之间解释器会被抢占/释放. 不是原子的.
     _counter = _counter + 1
     return template % _counter
 
 # Active thread administration
 _active_limbo_lock = _allocate_lock()
+# 已经启动的线程
 _active = {}    # maps thread id to Thread object
+# 还没有启动的线程啊
 _limbo = {}
 
 
@@ -421,6 +435,7 @@ class Thread(_Verbose):
             status = "stopped"
         if self.__daemonic:
             status = status + " daemon"
+		# print ident in new version.
         return "<%s(%s, %s)>" % (self.__class__.__name__, self.__name, status)
 
     def start(self):
@@ -431,6 +446,7 @@ class Thread(_Verbose):
         _active_limbo_lock.acquire()
         _limbo[self] = self
         _active_limbo_lock.release()
+		# thread.start_new_thread()
         _start_new_thread(self.__bootstrap, ())
         self.__started = True
         _sleep(0.000001)    # 1 usec, to let the thread run (Solaris hack)
@@ -439,6 +455,7 @@ class Thread(_Verbose):
         if self.__target:
             self.__target(*self.__args, **self.__kwargs)
 
+	# ~ threadmodule.c, t_bootstrap
     def __bootstrap(self):
         try:
             self.__started = True
@@ -628,6 +645,8 @@ class _Timer(Thread):
 # Special thread class to represent the main thread
 # This is garbage collected through an exit handler
 
+# 线程daemon直接不join daemon=True的线程, 直接kill掉.
+# with atexit
 class _MainThread(Thread):
 
     def __init__(self):

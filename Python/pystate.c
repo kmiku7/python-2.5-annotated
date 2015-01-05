@@ -280,7 +280,9 @@ PyThreadState_DeleteCurrent()
 		Py_FatalError(
 			"PyThreadState_DeleteCurrent: no current tstate");
 	_PyThreadState_Current = NULL;
+	// 从tstate_list摘除.
 	tstate_delete_common(tstate);
+	// 从tls_list摘除.
 	if (autoTLSkey && PyThread_get_key_value(autoTLSkey) == tstate)
 		PyThread_delete_key_value(autoTLSkey);
 	PyEval_ReleaseLock();
@@ -329,6 +331,7 @@ PyThreadState_Swap(PyThreadState *newts)
    PyThreadState_GetDict() returns NULL, an exception has *not* been raised
    and the caller should assume no per-thread state is available. */
 
+// 实现是通过thread-state里的字段, 而不是thread local storage.
 PyObject *
 PyThreadState_GetDict(void)
 {

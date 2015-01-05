@@ -246,12 +246,14 @@ static PyThread_type_lock import_lock = 0;
 static long import_lock_thread = -1;
 static int import_lock_level = 0;
 
+// block
 static void
 lock_import(void)
 {
 	long me = PyThread_get_thread_ident();
 	if (me == -1)
 		return; /* Too bad */
+	// lazy init
 	if (import_lock == NULL) {
 		import_lock = PyThread_allocate_lock();
 		if (import_lock == NULL)
@@ -2071,6 +2073,7 @@ PyImport_ImportModuleLevel(char *name, PyObject *globals, PyObject *locals,
 			 PyObject *fromlist, int level)
 {
 	PyObject *result;
+	// reenterable lock
 	lock_import();
 	result = import_module_level(name, globals, locals, fromlist, level);
 	if (unlock_import() < 0) {

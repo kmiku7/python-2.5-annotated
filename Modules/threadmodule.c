@@ -16,7 +16,7 @@ static PyObject *ThreadError;
 
 
 /* Lock objects */
-
+// 多一个指向系统的lock object pointer.
 typedef struct {
 	PyObject_HEAD
 	PyThread_type_lock lock_lock;
@@ -63,6 +63,7 @@ static PyObject *
 lock_PyThread_release_lock(lockobject *self)
 {
 	/* Sanity check: the lock must be locked */
+	// 成功说明要释放一个没有被锁的锁.
 	if (PyThread_acquire_lock(self->lock_lock, 0)) {
 		PyThread_release_lock(self->lock_lock);
 		PyErr_SetString(ThreadError, "release unlocked lock");
@@ -82,6 +83,7 @@ Release the lock, allowing another thread that is blocked waiting for\n\
 the lock to acquire the lock.  The lock must be in the locked state,\n\
 but it needn't be locked by the same thread that unlocks it.");
 
+// 判断是否加锁了.
 static PyObject *
 lock_locked_lock(lockobject *self)
 {
@@ -98,6 +100,10 @@ PyDoc_STRVAR(locked_doc,
 \n\
 Return whether the lock is in the locked state.");
 
+// 总共就三个接口:
+//	lock_PyThread_acquire_lock
+//	lock_PyThread_release_lock
+//	lock_locked_lock
 static PyMethodDef lock_methods[] = {
 	{"acquire_lock", (PyCFunction)lock_PyThread_acquire_lock, 
 	 METH_VARARGS, acquire_doc},
@@ -173,9 +179,10 @@ local_new(PyTypeObject *type, PyObject *args, PyObject *kw)
 	localobject *self;
 	PyObject *tdict;
 
+	// 好囧的判断.
 	if (type->tp_init == PyBaseObject_Type.tp_init
-	    && ((args && PyObject_IsTrue(args))
-		|| (kw && PyObject_IsTrue(kw)))) {
+	    &&
+		((args && PyObject_IsTrue(args)) || (kw && PyObject_IsTrue(kw)))) {
 		PyErr_SetString(PyExc_TypeError,
 			  "Initialization arguments are not supported");
 		return NULL;
@@ -205,6 +212,8 @@ local_new(PyTypeObject *type, PyObject *args, PyObject *kw)
 		goto err;
 	}
 
+	// dict里存的是localobject里的(key, value)的引用, 参考local_dealloc(), localobject ref -> 0时, 会进行清理.
+	// 也就是不能认为thread._local()提供了一个thread global的存储, thread global要通过 returns of thread._local()的生命周期保证.
 	if (PyDict_SetItem(tdict, self->key, self->dict) < 0)
 		goto err;
 
@@ -420,6 +429,7 @@ t_bootstrap(void *boot_raw)
 	tstate = PyThreadState_New(boot->interp);
 
 	PyEval_AcquireThread(tstate);
+	// 那个huge switch里也会抢锁,释放锁, 这里是怎么衔接的?
 	res = PyEval_CallObjectWithKeywords(
 		boot->func, boot->args, boot->keyw);
 	if (res == NULL) {
@@ -484,6 +494,9 @@ thread_PyThread_start_new_thread(PyObject *self, PyObject *fargs)
 	Py_INCREF(func);
 	Py_INCREF(args);
 	Py_XINCREF(keyw);
+	// 这里初始话GIL, 设置main_threadid
+	// 但是main thread PyThreadState structure在初始化的时候已经创建.
+	// 该函数激活GIL
 	PyEval_InitThreads(); /* Start the interpreter's thread-awareness */
 	ident = PyThread_start_new_thread(t_bootstrap, (void*) boot);
 	if (ident == -1) {
@@ -586,6 +599,7 @@ allocated consecutive numbers starting at 1, this behavior should not\n\
 be relied upon, and the number should be seen purely as a magic cookie.\n\
 A thread's identity may be reused for another thread after it exits.");
 
+// 不带参数等同于thread_stack_size(0)
 static PyObject *
 thread_stack_size(PyObject *self, PyObject *args)
 {
@@ -711,6 +725,9 @@ initthread(void)
 	PyDict_SetItemString(d, "LockType", (PyObject *)&Locktype);
 
 	Py_INCREF(&localtype);
+	// thread init插入了三个type object: thread.error, LockType, _local
+	// _local使用PyModule_AddObject插入, 该盗用相比PyDict_SetItemString()仅仅是多了参数检查.
+	// 做的事情一样, 为何用不同的调用?
 	if (PyModule_AddObject(m, "_local", (PyObject *)&localtype) < 0)
 		return;
 
