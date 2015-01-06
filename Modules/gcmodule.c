@@ -883,6 +883,7 @@ collect(int generation)
 	return n+m;
 }
 
+// 只会在gc_new()的时候触发.
 static Py_ssize_t
 collect_generations(void)
 {
@@ -1374,6 +1375,7 @@ PyObject_GC_Del(void *op)
 	PyGC_Head *g = AS_GC(op);
 	if (IS_TRACKED(op))
 		gc_list_remove(g);
+	// 这个计数到底什么意思?
 	if (generations[0].count > 0) {
 		generations[0].count--;
 	}

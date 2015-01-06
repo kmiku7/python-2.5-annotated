@@ -245,6 +245,7 @@ PyAPI_FUNC(PyVarObject *) _PyObject_GC_Resize(PyVarObject *, Py_ssize_t);
 /* GC information is stored BEFORE the object structure. */
 typedef union _gc_head {
 	struct {
+		// 这里的union什么意思?
 		union _gc_head *gc_next;
 		union _gc_head *gc_prev;
 		Py_ssize_t gc_refs;
@@ -262,6 +263,7 @@ extern PyGC_Head *_PyGC_generation0;
 
 /* Tell the GC to track this object.  NB: While the object is tracked the
  * collector it must be safe to call the ob_traverse method. */
+// 有头结点的循环链表, 插入到尾部.
 #define _PyObject_GC_TRACK(o) do { \
 	PyGC_Head *g = _Py_AS_GC(o); \
 	if (g->gc.gc_refs != _PyGC_REFS_UNTRACKED) \

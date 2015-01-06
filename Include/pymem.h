@@ -18,7 +18,8 @@ extern "C" {
    Because the Python implementation is free to change internal details, and
    the macros may (or may not) expose details for speed, if you do use the
    macros you must recompile your extensions with each Python release.
-
+	A: 每个接口都提供了函数/宏两种, 模块编写者应该使用函数接口, 保证二进制兼容性.
+	 
    Never mix calls to PyMem_ with calls to the platform malloc/realloc/
    calloc/free.  For example, on Windows different DLLs may end up using
    different heaps, and if you use PyMem_Malloc you'll get the memory from the
@@ -30,6 +31,7 @@ extern "C" {
    debugging info to dynamic memory blocks.  The system routines have no idea
    what to do with that stuff, and the Python wrappers have no idea what to do
    with raw blocks obtained directly by the system routines then.
+	A:	同一块内存的分配/释放函数要配对.
 */
 
 /*
@@ -46,7 +48,7 @@ extern "C" {
    Returned pointers must be checked for NULL explicitly.  No action is
    performed on failure (no exception is set, no warning is printed, etc).
 */
-
+// 实现上仅仅是对下面对应的宏的函数封装，见object.c
 PyAPI_FUNC(void *) PyMem_Malloc(size_t);
 PyAPI_FUNC(void *) PyMem_Realloc(void *, size_t);
 PyAPI_FUNC(void) PyMem_Free(void *);
@@ -57,6 +59,7 @@ PyAPI_FUNC(void) PyMem_Free(void *);
 /* Macros. */
 #ifdef PYMALLOC_DEBUG
 /* Redirect all memory operations to Python's debugging allocator. */
+// 会形成递归调用? 还是pyobject_malloc接口在debug mode有不同的实现?
 #define PyMem_MALLOC		PyObject_MALLOC
 #define PyMem_REALLOC		PyObject_REALLOC
 #define PyMem_FREE		PyObject_FREE
@@ -81,7 +84,7 @@ PyAPI_FUNC(void) PyMem_Free(void *);
  * reason to use them anymore (you can just as easily do the multiply and
  * cast yourself).
  */
-
+// 加了type-cast.
 #define PyMem_New(type, n) \
 	( (type *) PyMem_Malloc((n) * sizeof(type)) )
 #define PyMem_NEW(type, n) \

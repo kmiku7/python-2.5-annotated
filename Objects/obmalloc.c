@@ -61,6 +61,7 @@
  *
  * For small requests, the allocator sub-allocates <Big> blocks of memory.
  * Requests greater than 256 bytes are routed to the system's allocator.
+ * 	A:	小于256使用block池, 大于则直接调用malloc类接口.
  *
  * Small requests are grouped in size classes spaced 8 bytes apart, due
  * to the required valid alignment of the returned address. Requests of
@@ -77,6 +78,8 @@
  * this, we partition each free list in pools and we share dynamically the
  * reserved space between all free lists. This technique is quite efficient
  * for memory intensive programs which allocate mainly small-sized blocks.
+ * 	A:	small block分成按8*N的大小分组, 每次malloc()请求都round-up到最近的8*N的大小.
+ * 		drawback就不说了. 注意使用场景.
  *
  * For small requests we have the following table:
  *
@@ -127,6 +130,8 @@
  * The following invariants must hold:
  *	1) ALIGNMENT <= SMALL_REQUEST_THRESHOLD <= 256
  *	2) SMALL_REQUEST_THRESHOLD is evenly divisible by ALIGNMENT
+ *	
+ *	A:	256的限制哪来的?
  *
  * Although not required, for better performance and space efficiency,
  * it is recommended that SMALL_REQUEST_THRESHOLD is set to a power of 2.
@@ -143,12 +148,16 @@
  * size, then `POOL_ADDR(p)->arenaindex' could rarely cause a segmentation
  * violation fault.  4K is apparently OK for all the platforms that python
  * currently targets.
+ *
+ *	A:	SYSTEM_PAGE_SIZE对应pool的大小, 见POOL_SIZE定义.
  */
 #define SYSTEM_PAGE_SIZE	(4 * 1024)
 #define SYSTEM_PAGE_SIZE_MASK	(SYSTEM_PAGE_SIZE - 1)
 
 /*
  * Maximum amount of memory managed by the allocator for small requests.
+ * 该allocator能管理的最大内存.
+ * 通过MAX_ARENAS参数生效.
  */
 #ifdef WITH_MEMORY_LIMITS
 #ifndef SMALL_MEMORY_LIMIT
@@ -232,15 +241,27 @@
 typedef uchar block;
 
 /* Pool for small blocks. */
+// pool_header也记在POOL_SIZE里. 占用的大小是ROUNDUP(sizeof(struct pool_header))
 struct pool_header {
+	// count记录分配出去的block数.
 	union { block *_padding;
 		uint count; } ref;	/* number of allocated blocks    */
+	// 该pool内部的free block链表.
 	block *freeblock;		/* pool's free list head         */
 	// 这里的trick, 先next, then prev.
+	// 使用中, 串联相同size的pool.
+	// empty, 串联同一arena的empty pool.
 	struct pool_header *nextpool;	/* next pool of this size class  */
 	struct pool_header *prevpool;	/* previous pool       ""        */
+	// 所属的arena在arenas[]数组里的坐标.
 	uint arenaindex;		/* index into arenas of base adr */
+	// 每个pool只能提供固定大小的block, so...
 	uint szidx;			/* block size class index	 */
+	// pool内的block分为三种: 在用的, 曾用过但现在没用的, 全新的.
+	//	在用的pool没有管理, 完全丢给上层调用了;
+	//	曾用过的, 使用freeblock指针串联起来;
+	//  下一个可以使用的全新的block总是处于freeblock链表的尾部;
+	//	其他的全新未使用的block使用nextoffset进行管理.
 	uint nextoffset;		/* bytes to virgin block	 */
 	uint maxnextoffset;		/* largest valid nextoffset	 */
 };
@@ -248,15 +269,23 @@ struct pool_header {
 typedef struct pool_header *poolp;
 
 /* Record keeping for arenas. */
+// arena_object & arena_storage是分开存储的, 空间上并不"连续"
+// arena池保存在
+//		static struct arena_object* arenas = NULL;
+// 这个数组里, 扩缩容使用resize, 数组里保存了arena_object, 作为一个指向arena_storage的指针.
+// 类似cpp vector.
 struct arena_object {
 	/* The address of the arena, as returned by malloc.  Note that 0
 	 * will never be returned by a successful malloc, and is used
 	 * here to mark an arena_object that doesn't correspond to an
 	 * allocated arena.
 	 */
+	// 指向了ARENA_SIZE大小的arena_storage空间.
+	// 使用/未使用的标记.
 	uptr address;
 
 	/* Pool-aligned pointer to the next pool to be carved off. */
+	// 实际使用的pool的起始地址.
 	block* pool_address;
 
 	/* The number of available pools in the arena:  free pools + never-
@@ -268,21 +297,25 @@ struct arena_object {
 	uint ntotalpools;
 
 	/* Singly-linked list of available pools. */
+	// 属于该arena的.
 	struct pool_header* freepools;
 
 	/* Whenever this arena_object is not associated with an allocated
 	 * arena, the nextarena member is used to link all unassociated
 	 * arena_objects in the singly-linked `unused_arena_objects` list.
 	 * The prevarena member is unused in this case.
+	 *	A: 未使用的arena
 	 *
 	 * When this arena_object is associated with an allocated arena
 	 * with at least one available pool, both members are used in the
 	 * doubly-linked `usable_arenas` list, which is maintained in
 	 * increasing order of `nfreepools` values.
+	 *	A: 使用中,且可用的arena. 即至少有一个pool被分配处于, 又有空闲pool可满足接下来的请求.
 	 *
 	 * Else this arena_object is associated with an allocated arena
 	 * all of whose pools are in use.  `nextarena` and `prevarena`
 	 * are both meaningless in this case.
+	 *	A: 如果所有的pool都分配出去了, 他不在任何一个链表中, 没有维护任何串联关系.
 	 */
 	struct arena_object* nextarena;
 	struct arena_object* prevarena;
@@ -410,6 +443,8 @@ the prevpool member.
 #define PTA(x)	((poolp )((uchar *)&(usedpools[2*(x)]) - 2*sizeof(block *)))
 #define PT(x)	PTA(x), PTA(x)
 
+// 这个初始化值跟sentinel有关.
+// 初始化的next有用, 初始化的prev是没有意义的.
 static poolp usedpools[2 * ((NB_SMALL_SIZE_CLASSES + 7) / 8) * 8] = {
 	PT(0), PT(1), PT(2), PT(3), PT(4), PT(5), PT(6), PT(7)
 #if NB_SMALL_SIZE_CLASSES > 8
@@ -524,6 +559,7 @@ new_arena(void)
 		/* Double the number of arena objects on each allocation.
 		 * Note that it's possible for `numarenas` to overflow.
 		 */
+		// 只扩不缩?
 		numarenas = maxarenas ? maxarenas << 1 : INITIAL_ARENA_OBJECTS;
 		if (numarenas <= maxarenas)
 			return NULL;	/* overflow */
@@ -540,6 +576,9 @@ new_arena(void)
 		 * previous arenas are full.  Thus, there are *no* pointers
 		 * into the old array. Thus, we don't have to worry about
 		 * invalid pointers.  Just to be sure, some asserts:
+		 *
+		 *	ATTENTION HERE!!!
+		 *	pool索引到对应的arena也是算的数组偏移.
 		 */
 		assert(usable_arenas == NULL);
 		assert(unused_arena_objects == NULL);
@@ -584,6 +623,7 @@ new_arena(void)
 	arenaobj->nfreepools = ARENA_SIZE / POOL_SIZE;
 	assert(POOL_SIZE * arenaobj->nfreepools == ARENA_SIZE);
 	excess = (uint)(arenaobj->address & POOL_SIZE_MASK);
+	// 地址对齐.
 	if (excess != 0) {
 		--arenaobj->nfreepools;
 		arenaobj->pool_address += POOL_SIZE - excess;
@@ -868,7 +908,7 @@ PyObject_Malloc(size_t nbytes)
 			*(block **)(pool->freeblock) = NULL;
 			UNLOCK();
 			return (void *)bp;
-		}
+		} // end of if (pool != NULL)
 
 		/* Carve off a new pool. */
 		assert(usable_arenas->nfreepools > 0);
@@ -888,6 +928,7 @@ PyObject_Malloc(size_t nbytes)
 			       usable_arenas->nextarena->prevarena ==
 			       	   usable_arenas);
 			/* Unlink the arena:  it is completely allocated. */
+			// usable_arenas链表是有序的!
 			usable_arenas = usable_arenas->nextarena;
 			if (usable_arenas != NULL) {
 				usable_arenas->prevarena = NULL;
@@ -938,7 +979,9 @@ PyObject_Free(void *p)
 		assert(pool->ref.count > 0);	/* else it was empty */
 		*(block **)p = lastfree = pool->freeblock;
 		pool->freeblock = (block *)p;
+		// lastfree判断之前是不是full状态.
 		if (lastfree) {
+			// 非full, 需要判断是不是变为empty了.
 			struct arena_object* ao;
 			uint nf;  /* ao->nfreepools */
 
@@ -1014,6 +1057,7 @@ PyObject_Free(void *p)
 				unused_arena_objects = ao;
 
 				/* Free the entire arena. */
+				// ATTENTION HERE!!!
 				free((void *)ao->address);
 				ao->address = 0;	/* mark unassociated */
 				--narenas_currently_allocated;
