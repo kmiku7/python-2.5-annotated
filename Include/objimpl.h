@@ -324,12 +324,13 @@ PyAPI_FUNC(void) PyObject_GC_Del(void *);
 #define PyObject_AS_GC(op) (op)
 #define PyObject_FROM_GC(op) (op)
 
-
+// 根据这个宏看一看出有的object支持但没有激活.
 /* Test if a type supports weak references */
 #define PyType_SUPPORTS_WEAKREFS(t) \
         (PyType_HasFeature((t), Py_TPFLAGS_HAVE_WEAKREFS) \
          && ((t)->tp_weaklistoffset > 0))
 
+// 跟dict一样保存一个偏移
 #define PyObject_GET_WEAKREFS_LISTPTR(o) \
 	((PyObject **) (((char *) (o)) + (o)->ob_type->tp_weaklistoffset))
 

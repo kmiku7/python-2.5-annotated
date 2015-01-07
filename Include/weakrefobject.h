@@ -19,6 +19,7 @@ struct _PyWeakReference {
      * Note that this is a stealth reference:  wr_object's refcount is
      * not incremented to reflect this pointer.
      */
+	// wr只想的实体, 不是wr本身.
     PyObject *wr_object;
 
     /* A callable to invoke when wr_object dies, or NULL if none. */

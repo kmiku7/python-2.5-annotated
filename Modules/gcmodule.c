@@ -48,6 +48,7 @@ static struct gc_generation generations[NUM_GENERATIONS] = {
 
 PyGC_Head *_PyGC_generation0 = GEN_HEAD(0);
 
+// 默认enabled
 static int enabled = 1; /* automatic collection enabled? */
 
 /* true if we are currently running the collector */
@@ -126,7 +127,7 @@ GC_TENTATIVELY_UNREACHABLE
 	(AS_GC(o))->gc.gc_refs == GC_TENTATIVELY_UNREACHABLE)
 
 /*** list functions ***/
-
+// 有头节点的环形链表.
 static void
 gc_list_init(PyGC_Head *list)
 {
@@ -704,6 +705,7 @@ delete_garbage(PyGC_Head *collectable, PyGC_Head *old)
 		PyObject *op = FROM_GC(gc);
 
 		assert(IS_TENTATIVELY_UNREACHABLE(op));
+		// 根据参数有不同的行为, 析构还是放入garbage list.
 		if (debug & DEBUG_SAVEALL) {
 			PyList_Append(garbage, op);
 		}
@@ -714,6 +716,7 @@ delete_garbage(PyGC_Head *collectable, PyGC_Head *old)
 				Py_DECREF(op);
 			}
 		}
+		// 有可能在两个环里, 一次只能break掉一个环
 		if (collectable->gc.gc_next == gc) {
 			/* object is still alive, move it, it may die later */
 			gc_list_move(gc, old);
@@ -764,8 +767,10 @@ collect(int generation)
 	}
 
 	/* update collection and allocation counters */
+	// 只是紧邻的未启动的gc generation递增.
 	if (generation+1 < NUM_GENERATIONS)
 		generations[generation+1].count += 1;
+	// 计数器清零.
 	for (i = 0; i <= generation; i++)
 		generations[i].count = 0;
 
@@ -799,6 +804,7 @@ collect(int generation)
 	move_unreachable(young, &unreachable);
 
 	/* Move reachable objects to next generation. */
+	// reachable的上移.
 	if (young != old)
 		gc_list_merge(young, old);
 
@@ -815,11 +821,13 @@ collect(int generation)
 	 * unreachable objects reachable *from* those are also uncollectable,
 	 * and we move those into the finalizers list too.
 	 */
+	// 注意这里只是将finalizers里的对象关联的不可达对象一并放入的final队列, 可达的不加入.
 	move_finalizer_reachable(&finalizers);
 
 	/* Collect statistics on collectable objects found and print
 	 * debugging information.
 	 */
+	// 仅仅是输出统计信息.
 	for (gc = unreachable.gc.gc_next; gc != &unreachable;
 			gc = gc->gc.gc_next) {
 		m++;
@@ -1324,6 +1332,11 @@ _PyObject_GC_Malloc(size_t basicsize)
 		return PyErr_NoMemory();
 	g->gc.gc_refs = GC_UNTRACKED;
 	generations[0].count++; /* number of allocated GC objects */
+	// 这是唯一的自动激活gc的地方.
+	// 有几个开关: 
+	//		enabled, 非零, 激活.
+	//		generations[0].threshold, 阈值非零.
+	//		collection, 不嵌套激活.
  	if (generations[0].count > generations[0].threshold &&
  	    enabled &&
  	    generations[0].threshold &&
@@ -1375,7 +1388,6 @@ PyObject_GC_Del(void *op)
 	PyGC_Head *g = AS_GC(op);
 	if (IS_TRACKED(op))
 		gc_list_remove(g);
-	// 这个计数到底什么意思?
 	if (generations[0].count > 0) {
 		generations[0].count--;
 	}

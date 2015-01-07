@@ -56,6 +56,7 @@ clear_weakref(PyWeakReference *self)
         PyWeakReference **list = GET_WEAKREFS_LISTPTR(
             PyWeakref_GET_OBJECT(self));
 
+		// 这几下很trick
         if (*list == self)
             *list = self->wr_next;
         self->wr_object = Py_None;
@@ -216,6 +217,7 @@ get_basic_refs(PyWeakReference *head,
            little. */
         if (PyWeakref_CheckRefExact(head)) {
             *refp = head;
+			// 这有个step forward
             head = head->wr_next;
         }
         if (head != NULL
@@ -261,6 +263,8 @@ parse_weakref_init_args(char *funcname, PyObject *args, PyObject *kwargs,
     return PyArg_UnpackTuple(args, funcname, 1, 2, obp, callbackp);
 }
 
+// weakreflistoffset链表总是保持
+//  ref(callback==NULL), proxy(callback==NULL), last-insert-obj
 static PyObject *
 weakref___new__(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
@@ -280,10 +284,12 @@ weakref___new__(PyTypeObject *type, PyObject *args, PyObject *kwargs)
         if (callback == Py_None)
             callback = NULL;
         list = GET_WEAKREFS_LISTPTR(ob);
+		// 看起来队列构造上有玄机。
         get_basic_refs(*list, &ref, &proxy);
         if (callback == NULL && type == &_PyWeakref_RefType) {
             if (ref != NULL) {
                 /* We can re-use an existing reference. */
+				// 可以复用的.
                 Py_INCREF(ref);
                 return (PyObject *)ref;
             }
@@ -305,6 +311,7 @@ weakref___new__(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 
                 get_basic_refs(*list, &ref, &proxy);
                 prev = (proxy == NULL) ? ref : proxy;
+				// 尽量保证第一个的callback是NULL
                 if (prev == NULL)
                     insert_head(self, list);
                 else
@@ -326,12 +333,14 @@ weakref___init__(PyObject *self, PyObject *args, PyObject *kwargs)
         return 1;
 }
 
-
+// export as "ref" and "ReferenceType"
 PyTypeObject
 _PyWeakref_RefType = {
     PyObject_HEAD_INIT(&PyType_Type)
     0,
     "weakref",
+	// ReferenceType对应的Object就是 PyWeakReference !!!!!!
+	// 也就是串联在object->weakreflistoffset链表上的东西.
     sizeof(PyWeakReference),
     0,
     weakref_dealloc,            /*tp_dealloc*/
@@ -366,6 +375,7 @@ _PyWeakref_RefType = {
     0,                          /*tp_descr_get*/
     0,                          /*tp_descr_set*/
     0,                          /*tp_dictoffset*/
+	// 初始化在tp_new里进行了,  也就是init不会再改任何数据.
     weakref___init__,           /*tp_init*/
     PyType_GenericAlloc,        /*tp_alloc*/
     weakref___new__,            /*tp_new*/
@@ -640,12 +650,14 @@ static PyMappingMethods proxy_as_mapping = {
     (objobjargproc)proxy_setitem, /*mp_ass_subscript*/
 };
 
-
+// export as "ProxyType"
+// ProxyType & CallableProxy 都必须通过weakref_proxy()函数创建.
 PyTypeObject
 _PyWeakref_ProxyType = {
     PyObject_HEAD_INIT(&PyType_Type)
     0,
     "weakproxy",
+	// 对应的object是一样的.
     sizeof(PyWeakReference),
     0,
     /* methods */
@@ -675,7 +687,7 @@ _PyWeakref_ProxyType = {
     (iternextfunc)proxy_iternext,       /* tp_iternext */
 };
 
-
+// export as "CallableProxyType"
 PyTypeObject
 _PyWeakref_CallableProxyType = {
     PyObject_HEAD_INIT(&PyType_Type)
@@ -803,6 +815,7 @@ PyWeakref_NewProxy(PyObject *ob, PyObject *callback)
         if (result != NULL) {
             PyWeakReference *prev;
 
+			// 仅仅是改了ob_type字段.
             if (PyCallable_Check(ob))
                 result->ob_type = &_PyWeakref_CallableProxyType;
             else
